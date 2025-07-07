@@ -1,0 +1,71 @@
+import { Ticket, Subticket, ActionLog, User, TicketStatus, TicketType } from '../types';
+
+// Payloads for creating new records
+export type CreateTicketPayload = Omit<Ticket, 'id' | 'code' | 'advisor' | 'status' | 'emailStatus' | 'subticketIds' | 'pauseHistory' | 'executionHistory' | 'closingDate'>;
+export type CreateSubticketPayload = Omit<Subticket, 'id' | 'code' | 'creator' | 'status' | 'closingAdvisor' | 'eventEndDate' | 'rootCause' | 'badPraxis' | 'solution' | 'statusPostSLA' | 'comment' | 'eventResponsible'>;
+export type CreateActionLogPayload = Omit<ActionLog, 'id' | 'timestamp'>;
+
+// Payloads for updating records
+export type UpdateTicketPayload = Partial<Omit<Ticket, 'id' | 'subticketIds'>>;
+export type UpdateSubticketPayload = Partial<Omit<Subticket, 'id' | 'ticketId' | 'code'>>;
+export type CloseSubticketPayload = Pick<Subticket, 'eventEndDate' | 'rootCause' | 'badPraxis' | 'solution' | 'statusPostSLA' | 'comment' | 'eventResponsible'>;
+
+// Generic API response for success/failure on actions that don't return full objects
+export interface ApiResponse {
+    success: boolean;
+    message?: string;
+}
+
+
+
+export type RequestCreateTicket = {
+    managerId: number,
+    type: TicketType,
+    report: string,
+    diagnosis: string,
+    createAtEvent: Date,
+    unavailability: boolean,
+    nodeaffected: string,
+    oltaffected: string,
+}
+
+
+export type ResponseCreateTicket = {
+    ticketId: number,
+    codeTicket: string,
+    createManagerId: number,
+    type: string,
+    report: string
+    diagnosis: string,
+    createAtEvent: Date,
+    unavailability: boolean,
+    nodeAffected: string,
+    oltAffected: string,
+    comment: string,
+    status: string
+}
+
+
+export type RequestCreateSubticket = {
+    createManagerId: number,
+    ticketId: number,
+    dateReportPext: Date,
+    card: number,
+    port: number
+    serverDown: RequestCreateServerDown[]
+}
+
+
+export type ResponseCreateSubticket = {
+
+
+
+    
+}
+
+export type RequestCreateServerDown = {
+    subticketId: number,
+    clienteId: number
+}
+
+

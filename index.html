@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Tickets Win</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --color-primary: #FFFFFF;
+        --color-secondary: #F6F8FA;
+        --color-accent: #0969DA;
+        --color-border-color: #D0D7DE;
+        --color-text-primary: #1F2328;
+        --color-text-secondary: #656D76;
+      }
+      .dark {
+        --color-primary: #0D1117;
+        --color-secondary: #161B22;
+        --color-accent: #58A6FF;
+        --color-border-color: #30363D;
+        --color-text-primary: #C9D1D9;
+        --color-text-secondary: #8B949E;
+      }
+      /* --- Enhanced Gamer Theme --- */
+      .gamer {
+        --color-primary: #0A0A0A;
+        --color-secondary: #1A1A1A;
+        --color-accent: #D93623; /* Fiery red */
+        --color-border-color: #4a2525;
+        --color-text-primary: #EAEAEA;
+        --color-text-secondary: #999999;
+      }
+      .gamer .shadow-lg, .gamer .shadow-xl {
+        box-shadow: 0 0 25px -5px rgba(217, 54, 35, 0.25);
+      }
+      .gamer .hover\:shadow-xl:hover {
+        box-shadow: 0 0 35px -5px rgba(217, 54, 35, 0.35);
+      }
+      .gamer button.bg-accent {
+        box-shadow: 0 0 15px 0px rgba(217, 54, 35, 0.5);
+        font-weight: 600;
+        text-shadow: 0px 0px 4px rgba(0,0,0,0.5);
+        transition: all 0.2s ease-in-out;
+      }
+      .gamer button.bg-accent:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px 0px rgba(217, 54, 35, 0.6);
+      }
+
+      /* --- Enhanced Adult Theme --- */
+      .adult {
+        --color-primary: #000000;
+        --color-secondary: #121212;
+        --color-accent: #FF9900;
+        --color-border-color: #2a2a2a;
+        --color-text-primary: #FFFFFF;
+        --color-text-secondary: #b3b3b3;
+      }
+      .adult button.bg-accent {
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #000000;
+        letter-spacing: 0.5px;
+        border-radius: 9999px; /* Pill shape */
+      }
+      .adult .rounded-lg { /* Main cards */
+        border-radius: 6px;
+      }
+      .adult .rounded-md { /* Smaller components */
+        border-radius: 4px;
+      }
+    </style>
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme');
+        const root = document.documentElement;
+        root.classList.remove('dark', 'gamer', 'adult');
+
+        if (theme && ['dark', 'gamer', 'adult'].includes(theme)) {
+          root.classList.add(theme);
+        } else if (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
+        }
+      })();
+    </script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: 'var(--color-primary)',
+              secondary: 'var(--color-secondary)',
+              accent: 'var(--color-accent)',
+              'border-color': 'var(--color-border-color)',
+              'text-primary': 'var(--color-text-primary)',
+              'text-secondary': 'var(--color-text-secondary)',
+              success: '#238636',
+              danger: '#DA3633',
+              warning: '#D29922',
+            },
+            keyframes: {
+              ring: {
+                '0%, 100%': { transform: 'rotate(0)' },
+                '10%': { transform: 'rotate(15deg)' },
+                '20%': { transform: 'rotate(-10deg)' },
+                '30%': { transform: 'rotate(5deg)' },
+                '40%': { transform: 'rotate(-5deg)' },
+                '50%': { transform: 'rotate(0)' }
+              },
+              'fade-in': {
+                '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            },
+            animation: {
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'ring': 'ring 1.5s ease-in-out infinite',
+              'fade-in': 'fade-in 0.5s ease-out forwards',
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.7.0",
+    "recharts": "https://esm.sh/recharts@^3.0.2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-primary text-text-primary">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

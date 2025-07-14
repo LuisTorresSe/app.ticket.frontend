@@ -1,6 +1,6 @@
 import React, { createContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
-import { AppState, AppContextType, Ticket, Subticket, ActionLog, View, User, UploadedRecord, UserRole, TicketStatus, EmailStatus, TicketType, SubticketStatus, Theme, Permissions } from '../types';
-import { CreateTicketPayload, CreateSubticketPayload, CloseSubticketPayload } from '../services/apiTypes';
+import { AppState, AppContextType, Ticket, Subticket, ActionLog, View, User, UploadedRecord, UserRole, TicketStatus, EmailStatus, TicketType, SubticketStatus, Theme, Permissions, RequestCloseTicket, ClosedSubticketResponse, RequestChangeTicketStatus } from '../types';
+import { CreateTicketPayload, CreateSubticketPayload, CloseSubticketPayload, RequestCloseSubticket, ResponseCloseSubticket } from '../services/apiTypes';
 import * as apiService from '../services/apiService';
 import { USERS, USER_PERMISSIONS } from '../constants';
 
@@ -241,22 +241,124 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [state.currentUser, dispatch, logAction, showToast]);
 
-    const closeTicket = useCallback(async (ticketId: string): Promise<boolean> => {
-        const ticket = state.tickets.find(t => t.id === ticketId);
+
+    const changeTicketStatus = useCallback(
+        async (request: RequestChangeTicketStatus): Promise<boolean> => {
+          const { ticketId } = request;
+      
+          if (!state.currentUser?.permissions?.tickets?.edit) {
+            showToast('No tienes permiso para editar tickets.', 'error');
+            return false;
+          }
+      
+          const ticket = state.tickets.find(t => t.id === ticketId);
+          if (!ticket) {
+            showToast('Ticket no encontrado en memoria.', 'error');
+            return false;
+          }
+      
+          const loadingKey = `savingTicket_${ticketId}`;
+          dispatch(prev => ({
+            loading: { ...prev.loading, [loadingKey]: true }
+          }));
+      
+          try {
+            const result = await apiService.changeTicketStatus(request);
+      
+            if (!result.ok) {
+              showToast(result.message || 'Error al cambiar el estado del ticket.', 'error');
+              return false;
+            }
+      
+            const updated = result.ticket;
+      
+            dispatch(prev => ({
+              tickets: prev.tickets.map(t =>
+                t.id === updated.ticketId
+                  ? {
+                      ...t,
+                      status: updated.status,
+                      managerId: updated.managerId,
+                    }
+                  : t
+              )
+            }));
+      
+            await logAction(ticket.code, `Estado actualizado a ${updated.status}`);
+            showToast(`Ticket ${ticket.code} actualizado a ${updated.status}`, 'success');
+            const [refreshedTickets, refreshedSubtickets] = await Promise.all([
+                apiService.fetchTickets(),
+                apiService.fetchAllSubtickets()
+              ]);
+          
+              dispatch(prev => ({
+                tickets: refreshedTickets,
+                subtickets: refreshedSubtickets
+              }));
+            return true;
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : 'Error al actualizar el ticket.';
+            showToast(message, 'error');
+            return false;
+          } finally {
+            dispatch(prev => ({
+              loading: { ...prev.loading, [loadingKey]: false }
+            }));
+          }
+        },
+        [state.currentUser, state.tickets, dispatch, logAction, showToast]
+      );
+      
+    const closeTicket = useCallback(async (request: RequestChangeTicketStatus): Promise<boolean> => {
+        const ticket = state.tickets.find(t => t.id === request.ticketId);
+      
         if (!ticket) {
-            showToast('Ticket no encontrado', 'error');
-            return false;
+          showToast('Ticket no encontrado', 'error');
+          return false;
         }
-
-        const openSubtickets = state.subtickets.filter(st => st.ticketId === ticketId && st.status === SubticketStatus.Pending);
+      
+        const openSubtickets = state.subtickets.filter(
+          st => st.ticketId === request.ticketId && st.status === SubticketStatus.Pending
+        );
         if (openSubtickets.length > 0) {
-            showToast('No se puede marcar como Solucionado hasta que todos los subtickets estén cerrados', 'warning');
-            return false;
+          showToast('No se puede marcar como Solucionado hasta que todos los subtickets estén cerrados', 'warning');
+          return false;
         }
-
-        await updateTicket(ticketId, { status: TicketStatus.Solved, closingDate: new Date().toISOString() });
-        return true;
-    }, [state.tickets, state.subtickets, showToast, updateTicket]);
+      
+        dispatch(p => ({ loading: { ...p.loading, closingTicket: true } }));
+      
+        try {
+          const result = await apiService.closeTicket(request);
+      
+          if (!result.ok) {
+            showToast(result.message || 'Error al cerrar el ticket', 'error');
+            return false;
+          }
+      
+          // ✅ Recargar todos los tickets y subtickets después del cierre
+          const [refreshedTickets, refreshedSubtickets] = await Promise.all([
+            apiService.fetchTickets(),
+            apiService.fetchAllSubtickets()
+          ]);
+      
+          dispatch(prev => ({
+            tickets: refreshedTickets,
+            subtickets: refreshedSubtickets
+          }));
+      
+          await logAction(ticket.code, `Ticket cerrado por el manager.`);
+          showToast(`Ticket ${ticket.code} cerrado con éxito`, 'success');
+      
+          return true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Error al cerrar el ticket.';
+          showToast(message, 'error');
+          return false;
+        } finally {
+          dispatch(p => ({ loading: { ...p.loading, closingTicket: false } }));
+        }
+      }, [state.tickets, state.subtickets, dispatch, showToast, logAction]);
 
     const reopenTicket = useCallback(async (ticketId: string) => {
         const ticket = state.tickets.find(t => t.id === ticketId);
@@ -392,28 +494,107 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [state.subtickets, state.tickets, state.currentUser, dispatch, logAction, showToast]);
 
-    const closeSubticket = useCallback(async (subticketId: string, closingData: CloseSubticketPayload): Promise<boolean> => {
-        if (!state.currentUser?.permissions.tickets.edit) return false;
-        dispatch(p => ({ loading: { ...p.loading, [`closingSubticket_${subticketId}`]: true } }));
-        try {
-            const closedSubticket = await apiService.closeSubticket(subticketId, closingData, state.currentUser);
-            dispatch(prevState => ({
-                subtickets: prevState.subtickets.map(st => st.id === subticketId ? closedSubticket : st)
-            }));
-            const parentTicket = state.tickets.find(t => t.id === closedSubticket.ticketId);
-            if (parentTicket) {
-                await logAction(parentTicket.code, `Subticket ${closedSubticket.code} cerrado.`);
-                showToast(`Subticket ${closedSubticket.code} cerrado`, 'success');
-            }
-            return true;
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Error al cerrar subticket.";
-            showToast(message, 'error');
-            return false;
-        } finally {
-            dispatch(p => ({ loading: { ...p.loading, [`closingSubticket_${subticketId}`]: false } }));
+    // Esta función transforma la respuesta del backend a tu tipo Subticket
+    function adaptClosedSubticket(prev: Subticket, response: ClosedSubticketResponse): Subticket {
+      return {
+        ...prev, // mantiene campos como id, serverDowns, etc.
+        ticketId: response.ticketId,
+        code: response.code,
+        cto: response.cto,
+        card: response.card,
+        port: response.port,
+        city: response.city,
+        clientCount: response.clientCount,
+        eventStartDate: response.eventStartDate,
+        reportedToPextDate: response.reportedToPextDate,
+        creator: response.creator,
+        status: response.status as SubticketStatus,
+        node: response.node,
+        olt: response.olt,
+        closingAdvisor: response.closingAdvisor,
+        eventEndDate: response.eventEndDate,
+        rootCause: response.rootCause,
+        badPraxis: response.badPraxis,
+        solution: response.solution,
+        statusPostSLA: response.statusPostSLA,
+        comment: response.comment,
+        eventResponsible: response.eventResponsible
+      };
+    }
+
+    const closeSubticket = useCallback(async (
+        requestCloseSubticket: RequestCloseSubticket
+      ): Promise<boolean> => {
+        if (!state.currentUser?.permissions.tickets.edit) {
+          showToast('No tienes permiso para cerrar subtickets.', 'error');
+          return false;
         }
-    }, [state.currentUser?.permissions.tickets.edit, state.tickets, dispatch, logAction, showToast]);
+
+        console.log(requestCloseSubticket.causeRoot+ "estamos en el context")
+      
+        const subticketId = requestCloseSubticket.subticketId;
+      
+        dispatch(p => ({
+          loading: {
+            ...p.loading,
+            [`closingSubticket_${subticketId}`]: true,
+          }
+        }));
+      
+        try {
+          const request: RequestCloseSubticket = {
+            ...requestCloseSubticket,
+            managerId: state.currentUser.id,
+            eventResponsible: state.currentUser.fullName ?? '',
+            comment: requestCloseSubticket.comment ?? null,
+          };
+      
+          const result = await apiService.closeSubticket(request);
+      
+          if (!result.ok) {
+            showToast(result.message || 'Error al cerrar subticket', 'error');
+            return false;
+          }
+      
+          // ✅ Recargar todos los tickets y subtickets
+          const [refreshedTickets, refreshedSubtickets] = await Promise.all([
+            apiService.fetchTickets(),
+            apiService.fetchAllSubtickets()
+          ]);
+      
+          dispatch(prevState => ({
+            tickets: refreshedTickets,
+            subtickets: refreshedSubtickets
+          }));
+      
+          const parentTicket = refreshedTickets.find(t => t.id === requestCloseSubticket.ticketId);
+          if (parentTicket) {
+            await logAction(parentTicket.code, `Subticket cerrado`);
+            showToast(`Subticket cerrado con éxito en ${parentTicket.code}`, 'success');
+          }
+      
+          return true;
+      
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Error al cerrar subticket.';
+          showToast(message, 'error');
+          return false;
+        } finally {
+          dispatch(p => ({
+            loading: {
+              ...p.loading,
+              [`closingSubticket_${subticketId}`]: false,
+            }
+          }));
+        }
+      }, [
+        state.currentUser?.permissions.tickets.edit,
+        state.currentUser?.id,
+        state.currentUser?.fullName,
+        dispatch,
+        showToast,
+        logAction,
+      ]);
 
     const reopenSubticket = useCallback(async (subticketId: string) => {
         const subticket = state.subtickets.find(st => st.id === subticketId);
@@ -492,8 +673,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         logAction,
         addUser,
         updateUser,
-        deleteUser
-    }), [state, dispatch, changeTheme, login, logout, showToast, addTicket, updateTicket, closeTicket, reopenTicket, deleteTicket, restoreTicket, addSubticket, updateSubticket, closeSubticket, reopenSubticket, logAction, addUser, updateUser, deleteUser]);
+        deleteUser,
+        changeTicketStatus
+    }), [state, dispatch, changeTheme, login, logout, showToast, addTicket, updateTicket, closeTicket, reopenTicket, deleteTicket, restoreTicket, addSubticket, updateSubticket, changeTicketStatus, closeSubticket, reopenSubticket, logAction, addUser, updateUser, deleteUser]);
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -1,7 +1,7 @@
 
 import React, { useState, Fragment, useRef, useEffect, useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { Ticket, TicketStatus, EmailStatus, UserRole, Subticket, SubticketStatus, PauseInfo, ExecutionInfo } from '../../types';
+import { Ticket, TicketStatus, EmailStatus, UserRole, Subticket, SubticketStatus, PauseInfo, ExecutionInfo, RequestChangeTicketStatus } from '../../types';
 import { formatDate, calculateDuration, calculateTotalDuration } from '../../lib/utils';
 import { ICONS, PAUSE_REASON_OPTIONS } from '../../constants';
 import Card from '../common/Card';
@@ -14,7 +14,8 @@ import CloseSubticketModal from './CloseSubticketModal';
 import InlineReportView from '../reports/InlineReportView';
 import Select from '../common/Select';
 import Input from '../common/Input';
-import { CloseSubticketPayload } from '../../services/apiTypes';
+import { CloseSubticketPayload, RequestCloseSubticket } from '../../services/apiTypes';
+
 
 interface TicketItemProps {
   ticket: Ticket;
@@ -51,9 +52,9 @@ const EmailStatusIndicator: React.FC<{ status: EmailStatus }> = ({ status }) => 
 
 
 const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
-    const { currentUser, updateTicket, deleteTicket, subtickets, showToast, closeSubticket, logAction } = useAppContext();
+    const { currentUser,  closeTicket, changeTicketStatus,updateTicket, deleteTicket, subtickets, showToast, closeSubticket, logAction } = useAppContext();
     const [isExpanded, setExpanded] = useState(false);
-    const [isReportVisible, setReportVisible] = useState(false);
+    const [isReportVisible, setReportVisible] = useState(false); 
     const [isSubticketModalOpen, setSubticketModalOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [isClosingModalOpen, setClosingModalOpen] = useState(false);
@@ -68,9 +69,13 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
     const canDelete = currentUser?.permissions.tickets.delete ?? false;
     const canCreate = currentUser?.permissions.tickets.create ?? false;
 
-    const ticketSubtickets = subtickets.filter(st => st.ticketId === ticket.id);
+    const ticketSubtickets = subtickets.filter(st => st.ticketId == ticket.id);
+
+
     const pendingSubtickets = ticketSubtickets.filter(st => st.status === SubticketStatus.Pending);
-    
+
+
+
     const totalClients = useMemo(() => 
         ticketSubtickets.reduce((sum, st) => sum + st.clientCount, 0), 
         [ticketSubtickets]
@@ -136,21 +141,40 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
         }
     };
 
-    const handleBatchClose = async (closingData: Partial<Subticket>) => {
+    const handleBatchClose = async (closingData: RequestCloseSubticket) => {
         const openSubtickets = ticketSubtickets.filter(st => st.status === SubticketStatus.Pending);
-        
-        const closingPayload = closingData as CloseSubticketPayload;
-        const results = await Promise.all(
-            openSubtickets.map(st => closeSubticket(st.id, closingPayload))
-        );
-
-        if (results.every(res => res)) {
-            showToast(`Se cerraron ${openSubtickets.length} subticket(s) con éxito.`, "success");
-        } else {
-             showToast("Algunos subtickets no se pudieron cerrar.", "error");
+      
+        if (openSubtickets.length === 0) {
+          showToast("No hay subtickets pendientes para cerrar.", "info");
+          return;
         }
+      
+        // Ejecuta las promesas de cierre en paralelo
+        const results = await Promise.all(
+          openSubtickets.map(async (st) => {
+            const request: RequestCloseSubticket = {
+              ...closingData,
+              subticketId: st.id,
+              ticketId: st.ticketId,
+              finalEvent: closingData.finalEvent ?? new Date().toISOString(),
+            };
+      
+            const success = await closeSubticket(request);
+            return { success, subticketCode: st.code };
+          })
+        );
+      
+        const failed = results.filter(r => !r.success);
+      
+        if (failed.length === 0) {
+          showToast(`✅ Se cerraron correctamente ${openSubtickets.length} subticket(s).`, "success");
+        } else {
+          const failedCodes = failed.map(f => f.subticketCode).join(", ");
+          showToast(`⚠️ Algunos subtickets no se cerraron: ${failedCodes}`, "warning");
+        }
+      
         setClosingModalOpen(false);
-    }
+      };
     
     const openStatusChangeModal = (targetStatus: TicketStatus) => {
         setStatusChangeTarget(targetStatus);
@@ -161,83 +185,150 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
         setStatusChangeModalOpen(true);
     };
 
-    const handleStatusChange = (newStatus: TicketStatus) => {
+    const handleStatusChange = async (newStatus: TicketStatus) => {
         if (newStatus === TicketStatus.Solved) {
             if (pendingSubtickets.length > 0) {
                 showToast('No se puede marcar como Solucionado hasta que todos los subtickets estén cerrados', 'warning');
                 return;
             }
-            updateTicket(ticket.id, { status: TicketStatus.Solved, closingDate: new Date().toISOString() });
-            logAction(ticket.code, 'Ticket marcado como Solucionado.');
-            showToast(`Ticket ${ticket.code} Solucionado.`, 'success');
+    
+            const request: RequestChangeTicketStatus = {
+                ticketId: ticket.id,
+                managerId: "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa",
+                status: newStatus
+            // Asumiendo que usas currentUser del context
+            };
+    
+            const success = await closeTicket(request); // Llama al contexto que hace la petición
+
+            if (success) {
+                logAction(ticket.code, 'Ticket marcado como Solucionado.');
+                showToast(`Ticket ${ticket.code} Solucionado.`, 'success');
+            } else {
+                showToast('No se pudo cerrar el ticket. Intenta nuevamente.', 'error');
+            }
+    
             return;
         }
-
-        const requiresModal = 
+    
+        // Otros cambios de estado
+        const requiresModal =
             (newStatus === TicketStatus.OnHold) ||
             (ticket.status === TicketStatus.OnHold) ||
             (newStatus === TicketStatus.InProgress) ||
             (ticket.status === TicketStatus.InProgress);
-
+    
         if (requiresModal && newStatus !== ticket.status) {
             openStatusChangeModal(newStatus);
         } else if (newStatus !== ticket.status) {
-            // Direct change for Pending from any other non-modal state
-             updateTicket(ticket.id, { status: newStatus });
-             logAction(ticket.code, `Estado cambiado a ${newStatus}`);
-             showToast(`Ticket ${ticket.code} actualizado a ${newStatus}`, 'success');
+            updateTicket(ticket.id, { status: newStatus });
+            logAction(ticket.code, `Estado cambiado a ${newStatus}`);
+            showToast(`Ticket ${ticket.code} actualizado a ${newStatus}`, 'success');
         }
     };
     
-    const handleStatusModalSubmit = () => {
-        if(!statusChangeTarget) return;
-
-        const changeTimestamp = statusForm.dateTime ? new Date(statusForm.dateTime).toISOString() : new Date().toISOString();
-
-        const updates: Partial<Ticket> = { status: statusChangeTarget };
+    
+    const handleStatusModalSubmit = async () => {
+        if (!statusChangeTarget) return;
+      
+        const changeTimestamp = statusForm.dateTime
+          ? new Date(statusForm.dateTime).toISOString()
+          : new Date().toISOString();
+      
+        let request: RequestChangeTicketStatus;
         let logMessage = `Estado cambiado a ${statusChangeTarget}`;
-        
-        const newPauseHistory = ticket.pauseHistory ? ticket.pauseHistory.map(p => ({...p})) : [];
-        const newExecutionHistory = ticket.executionHistory ? ticket.executionHistory.map(e => ({...e})) : [];
-        
+      
+        const newPauseHistory = ticket.pauseHistory?.map(p => ({ ...p })) ?? [];
+        const newExecutionHistory = ticket.executionHistory?.map(e => ({ ...e })) ?? [];
+      
+        // Finalizar pausa previa si venía de OnHold
         if (ticket.status === TicketStatus.OnHold) {
-            const lastPause = newPauseHistory[newPauseHistory.length - 1];
-            if (lastPause && !lastPause.endTime) {
-                lastPause.endTime = changeTimestamp;
-            }
+          const lastPause = newPauseHistory.at(-1);
+          if (lastPause && !lastPause.endTime) {
+            lastPause.endTime = changeTimestamp;
+          }
         }
+      
+        // Finalizar ejecución previa si venía de InProgress
         if (ticket.status === TicketStatus.InProgress) {
-            const lastExec = newExecutionHistory[newExecutionHistory.length - 1];
-            if (lastExec && !lastExec.endTime) {
-                lastExec.endTime = changeTimestamp;
-            }
+          const lastExec = newExecutionHistory.at(-1);
+          if (lastExec && !lastExec.endTime) {
+            lastExec.endTime = changeTimestamp;
+          }
         }
-
-        if (statusChangeTarget === TicketStatus.OnHold) {
+      
+        // Construir request según el nuevo estado
+        switch (statusChangeTarget) {
+          case TicketStatus.OnHold:
             if (!statusForm.reason) {
-                showToast('Se requiere un motivo de pausa.', 'error');
-                return;
+              showToast('Se requiere un motivo de pausa.', 'error');
+              return;
             }
-            const newPause: PauseInfo = { startTime: changeTimestamp, reason: statusForm.reason! };
+      
+            const newPause: PauseInfo = {
+              startTime: changeTimestamp,
+              reason: statusForm.reason
+            };
             newPauseHistory.push(newPause);
+      
+            request = {
+              ticketId: ticket.id,
+              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+              status: TicketStatus.OnHold,
+              reasonForPause: statusForm.reason
+            };
+      
             logMessage += ` (Motivo: ${statusForm.reason})`;
-        }
-        if (statusChangeTarget === TicketStatus.InProgress) {
+            break;
+      
+          case TicketStatus.InProgress:
             const newExec: ExecutionInfo = { startTime: changeTimestamp };
             newExecutionHistory.push(newExec);
+      
+            request = {
+              ticketId: ticket.id,
+              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+              status: TicketStatus.InProgress
+            };
+            break;
+      
+          case TicketStatus.Pending:
+            request = {
+              ticketId: ticket.id,
+              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+              status: TicketStatus.Pending
+            };
+            console.log("estamos en pendiente")
+            break;
+      
+          default:
+            // Fallback para cualquier otro estado como Solved, etc.
+            request = {
+              ticketId: ticket.id,
+              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+              status: statusChangeTarget
+            };
+            break;
         }
-        
-        updates.pauseHistory = newPauseHistory;
-        updates.executionHistory = newExecutionHistory;
-
-        updateTicket(ticket.id, updates);
-        logAction(ticket.code, logMessage);
-        showToast(`Ticket ${ticket.code} actualizado a ${statusChangeTarget}`, 'success');
-        
+      
+        const updates: Partial<Ticket> = {
+          status: statusChangeTarget,
+          pauseHistory: newPauseHistory,
+          executionHistory: newExecutionHistory
+        };
+      
+        const success = await changeTicketStatus(request);
+      
+        if (success) {
+          logAction(ticket.code, logMessage);
+          showToast(`Ticket ${ticket.code} actualizado a ${statusChangeTarget}`, 'success');
+        }
+      
         setStatusChangeModalOpen(false);
         setStatusChangeTarget(null);
         setStatusForm({});
-    };
+      };
+      
 
     const getModalTitle = () => {
         const from = ticket.status;

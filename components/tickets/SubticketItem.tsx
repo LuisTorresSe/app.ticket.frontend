@@ -7,7 +7,7 @@ import Button from '../common/Button';
 import Modal from '../common/Modal';
 import CloseSubticketModal from './CloseSubticketModal';
 import SubticketForm from './SubticketForm';
-import { CloseSubticketPayload } from '../../services/apiTypes';
+import { CloseSubticketPayload, RequestCloseSubticket } from '../../services/apiTypes';
 
 interface SubticketItemProps {
     subticket: Subticket;
@@ -77,7 +77,7 @@ const ServerDownList: React.FC<{ serverDowns: ServerDown[] }> = ({ serverDowns }
 };
 
 const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }) => {
-    const { currentUser, tickets, closeSubticket, reopenSubticket } = useAppContext();
+    const { currentUser, tickets, closeSubticket, reopenSubticket, subtickets } = useAppContext();
     const [isClosingModalOpen, setClosingModalOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [isExpanded, setExpanded] = useState(false);
@@ -87,9 +87,12 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
     const parentTicket = tickets.find(t => t.id === subticket.ticketId);
     const isTicketActionable = ticketStatus !== TicketStatus.Solved;
 
-    const handleCloseSubmit = async (closingData: Partial<Subticket>) => {
-        const success = await closeSubticket(subticket.id, closingData as CloseSubticketPayload);
-        if(success) {
+    const handleCloseSubmit = async (request: RequestCloseSubticket) => {
+        console.log(request.rootCause+"handlesubmit")
+        const success = await closeSubticket(request);
+      
+
+         if(success) {
             setClosingModalOpen(false);
         }
     }
@@ -97,7 +100,6 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
     if (!parentTicket) {
         return <div className="bg-danger/20 p-3 rounded-md border border-danger">Subticket huérfano encontrado.</div>;
     }
-    console.log(subticket)
     return (
         <div className="bg-secondary/50 rounded-lg border border-border-color shadow-sm">
             <header 
@@ -110,7 +112,7 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
                     </div>
                     <div>
                         <p className="font-bold text-base text-text-primary">{subticket.code}</p>
-                        <p className="text-xs text-text-secondary">Creado por: {subticket.creator}</p>
+                        <p className="text-xs text-text-secondary">Creado por: {subticket.creator.managerName}</p>
                     </div>
                 </div>
 
@@ -119,7 +121,7 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
                     <div onClick={e => e.stopPropagation()} className="flex items-center space-x-1">
                          {subticket.status === SubticketStatus.Pending && isTicketActionable && canEdit && (
                             <>
-                                <Button size="sm" variant="ghost" onClick={() => setEditModalOpen(true)} className="p-1 h-7 w-7" title="Editar Subticket">{ICONS.edit}</Button>
+                                <Button size="sm" variant="ghost" onClick={() => setEditModalOpen(true)} className="p-1 h-11 w-11" title="Editar Subticket">{ICONS.edit}</Button>
                                 <Button size="sm" variant="secondary" onClick={() => setClosingModalOpen(true)} className="text-xs px-2 py-1" title="Cerrar Subticket">{ICONS.lock}</Button>
                             </>
                          )}
@@ -159,7 +161,8 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
                             <h4 className="font-semibold text-xs mb-1.5 text-text-secondary uppercase tracking-wider">Cierre</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5">
                                 <DetailCell label="Fin" value={formatDate(subticket.eventEndDate)} />
-                                <DetailCell label="Asesor" value={subticket.closingAdvisor} />
+                                 <DetailCell label="Asesor"value={subtickets.find(st => st.id === subticket.id)?.closingAdvisor || '—'}
+/>
                                 <DetailCell label="Responsable" value={subticket.eventResponsible} />
                                 <DetailCell label="Mala Praxis" value={subticket.badPraxis ? 'Sí' : 'No'} />
                                 <DetailCell label="Causa" value={subticket.rootCause} />

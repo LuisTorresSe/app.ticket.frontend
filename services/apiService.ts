@@ -1,5 +1,5 @@
-import { Ticket, BackendTicket, BackendSubticket, TicketType, TicketStatus, Subticket, UploadedRecord, ActionLog, User, SubticketStatus, EmailStatus, UserRole, RequestCreateTicket, RequestCreateSubticket } from '../types';
-import { CreateTicketPayload, UpdateTicketPayload, CreateSubticketPayload, UpdateSubticketPayload, CloseSubticketPayload, ApiResponse, CreateActionLogPayload } from './apiTypes';
+import { Ticket, BackendTicket, BackendSubticket, TicketType, TicketStatus, Subticket, UploadedRecord, ActionLog, User, SubticketStatus, EmailStatus, UserRole, RequestCreateTicket, RequestCreateSubticket, RequestCloseTicket, ClosedSubticketResponse, RequestChangeTicketStatus, TicketStatusChangeResponse } from '../types';
+import { CreateTicketPayload, UpdateTicketPayload, CreateSubticketPayload, UpdateSubticketPayload, CloseSubticketPayload, ApiResponse, CreateActionLogPayload, RequestCloseSubticket, ResponseCloseSubticket, ResponseCloseTicket, CloseTicketResult } from './apiTypes';
 import { initialTickets, initialSubtickets, initialUploadedData, USERS, USER_PERMISSIONS } from '../constants';
 import { generateTicketCode } from '../lib/utils';
 
@@ -17,7 +17,7 @@ const API_BASE_URL = 'http://localhost:8080/api/v1';
  */
 async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    console.log(`[API] ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body as string) : '');
+    //console.log(`[API] ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body as string) : '');
 
 
     const headers = {
@@ -68,7 +68,7 @@ export const login = async (username: string, password: string): Promise<User> =
 
 
     // return apiFetch<User | null>('/login', { method: 'POST', body: JSON.stringify({ username, password }) });
-    console.log('[MOCK] login', { username });
+    //console.log('[MOCK] login', { username });
     const normalizedUsername = username.trim().toLowerCase();
     const normalizedPassword = password.trim();
 
@@ -93,13 +93,13 @@ export const login = async (username: string, password: string): Promise<User> =
 // USERS
 export const fetchUsers = async (): Promise<User[]> => {
     // return apiFetch<User[]>('/users');
-    console.log('[MOCK] fetchUsers');
+    //console.log('[MOCK] fetchUsers');
     return Promise.resolve(mockDb.users);
 };
 
 export const createUser = async (payload: Omit<User, 'id'>): Promise<User> => {
     // return apiFetch<User>('/users', { method: 'POST', body: JSON.stringify(payload) });
-    console.log('[MOCK] createUser', payload);
+    //console.log('[MOCK] createUser', payload);
     const newUser: User = {
         ...payload,
         id: `user-${Date.now()}`,
@@ -110,7 +110,7 @@ export const createUser = async (payload: Omit<User, 'id'>): Promise<User> => {
 
 export const updateUser = async (userId: string, payload: Partial<User>): Promise<User> => {
     // return apiFetch<User>(`/users/${userId}`, { method: 'PUT', body: JSON.stringify(payload) });
-    console.log('[MOCK] updateUser', userId, payload);
+    //console.log('[MOCK] updateUser', userId, payload);
     const userIndex = mockDb.users.findIndex((u: User) => u.id === userId);
     if (userIndex === -1) throw new Error("User not found");
 
@@ -125,7 +125,7 @@ export const updateUser = async (userId: string, payload: Partial<User>): Promis
 
 export const deleteUser = async (userId: string): Promise<ApiResponse> => {
     // return apiFetch<ApiResponse>(`/users/${userId}`, { method: 'DELETE' });
-    console.log('[MOCK] deleteUser', userId);
+    //console.log('[MOCK] deleteUser', userId);
     const initialLength = mockDb.users.length;
     mockDb.users = mockDb.users.filter((u: User) => u.id !== userId);
     if (mockDb.users.length === initialLength) throw new Error("User not found to delete");
@@ -135,7 +135,7 @@ export const deleteUser = async (userId: string): Promise<ApiResponse> => {
 // TICKETS
 export const fetchTickets = async (): Promise<Ticket[]> => {
     const data = await apiFetch<any>('/ticket');
-    console.log('Respuesta de la API /ticket:', data);
+    //console.log('Respuesta de la API /ticket:', data);
     let backendTickets: BackendTicket[] = [];
 
     if (Array.isArray(data)) {
@@ -151,20 +151,20 @@ export const fetchTickets = async (): Promise<Ticket[]> => {
 
 export const fetchArchivedTickets = async (): Promise<Ticket[]> => {
     // return apiFetch<Ticket[]>('/tickets/archived');
-    console.log('[MOCK] fetchArchivedTickets');
+    //console.log('[MOCK] fetchArchivedTickets');
     return Promise.resolve(mockDb.tickets.filter((t: Ticket) => t.status === TicketStatus.Solved));
 };
 
-export const createTicket = async (payload: CreateTicketPayload, currentUser: User): Promise<Ticket> => {
+export const createTicket = async (request: RequestCreateTicket, currentUser: User): Promise<Ticket> => {
     const backendPayload: RequestCreateTicket = {
         managerId: "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa", // ID fijo como solicitado
-        type: payload.type,
-        report: payload.reportedBy,
-        diagnosis: payload.initialDiagnosis,
-        createAtEvent: payload.creationDate,
-        unavailability: payload.serviceUnavailable,
-        nodeAffected: payload.node,
-        oltAffected: payload.olt
+        type: request.type,
+        report: request.report,
+        diagnosis: request.diagnosis,
+        createAtEvent: request.createAtEvent,
+        unavailability: request.unavailability,
+        nodeAffected: request.nodeAffected,
+        oltAffected: request.oltAffected
     };
 
     try {
@@ -173,7 +173,7 @@ export const createTicket = async (payload: CreateTicketPayload, currentUser: Us
             body: JSON.stringify(backendPayload)
         });
 
-        console.log('Respuesta del backend al crear ticket:', response);
+        //console.log('Respuesta del backend al crear ticket:', response);
         return transformTicketFromBackend(response);
     } catch (error) {
         console.error('Error al crear ticket:', error);
@@ -183,7 +183,7 @@ export const createTicket = async (payload: CreateTicketPayload, currentUser: Us
 
 export const updateTicket = async (ticketId: string, payload: UpdateTicketPayload): Promise<Ticket> => {
     // return apiFetch<Ticket>(`/tickets/${ticketId}`, { method: 'PUT', body: JSON.stringify(payload) });
-    console.log('[MOCK] updateTicket', ticketId, payload);
+    //console.log('[MOCK] updateTicket', ticketId, payload);
     const ticketIndex = mockDb.tickets.findIndex((t: Ticket) => t.id === ticketId);
     if (ticketIndex === -1) throw new Error("Ticket not found");
     mockDb.tickets[ticketIndex] = { ...mockDb.tickets[ticketIndex], ...payload };
@@ -192,7 +192,7 @@ export const updateTicket = async (ticketId: string, payload: UpdateTicketPayloa
 
 export const archiveTicket = async (ticketId: string): Promise<ApiResponse> => {
     // return apiFetch<ApiResponse>(`/tickets/${ticketId}`, { method: 'DELETE' });
-    console.log('[MOCK] archiveTicket', ticketId);
+    //console.log('[MOCK] archiveTicket', ticketId);
     const ticket = mockDb.tickets.find((t: Ticket) => t.id === ticketId);
     if (!ticket) throw new Error("Ticket not found");
     // In mock, we just change the status, real archive might move it
@@ -203,7 +203,7 @@ export const archiveTicket = async (ticketId: string): Promise<ApiResponse> => {
 
 export const restoreTicket = async (ticketId: string): Promise<Ticket> => {
     // return apiFetch<Ticket>(`/tickets/${ticketId}/restore`, { method: 'POST' });
-    console.log('[MOCK] restoreTicket', ticketId);
+    //console.log('[MOCK] restoreTicket', ticketId);
     const ticket = mockDb.tickets.find((t: Ticket) => t.id === ticketId);
     if (!ticket) throw new Error("Ticket not found");
     ticket.status = TicketStatus.Pending;
@@ -214,25 +214,25 @@ export const restoreTicket = async (ticketId: string): Promise<Ticket> => {
 // SUBTICKETS
 export const fetchAllSubtickets = async (): Promise<Subticket[]> => {
     const backendTickets = await apiFetch<BackendTicket[]>('/ticket');
-    console.log('Respuesta de la API para subtickets:', JSON.stringify(backendTickets, null, 2));
+    //console.log('Respuesta de la API para subtickets:', JSON.stringify(backendTickets, null, 2));
     const subtickets: Subticket[] = [];
     backendTickets.forEach(bt => {
         const ticketId = bt.ticketId ?? bt.id;
         if (!ticketId) {
-            console.warn('Ticket sin ID encontrado:', JSON.stringify(bt, null, 2));
+          //  console.warn('Ticket sin ID encontrado:', JSON.stringify(bt, null, 2));
             return;
         }
         
         if (bt.subtickets && Array.isArray(bt.subtickets)) {
             bt.subtickets.forEach((bst: any) => {
                 try {
-                    console.log('Procesando subticket:', JSON.stringify(bst, null, 2));
+                //    //console.log('Procesando subticket:', JSON.stringify(bst, null, 2));
                     const transformed = transformSubticketFromBackend(bst as BackendSubticket, ticketId);
                     subtickets.push(transformed);
                 } catch (error) {
-                    console.error('Error transformando subticket:', error);
-                    console.error('Datos del subticket:', JSON.stringify(bst, null, 2));
-                    console.error('Datos del ticket padre:', JSON.stringify(bt, null, 2));
+                    //console.error('Error transformando subticket:', error);
+                   // console.error('Datos del subticket:', JSON.stringify(bst, null, 2));
+                   // console.error('Datos del ticket padre:', JSON.stringify(bt, null, 2));
                 }
             });
         }
@@ -244,55 +244,130 @@ export const createSubticket = async (payload: CreateSubticketPayload, currentUs
     const backendPayload: RequestCreateSubticket = {
         createManagerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
         ticketId: parseInt(payload.ticketId, 10),
-        dateReportPext: payload.reportedToPextDate,
+        eventStartDate: payload.eventStartDate,
+        reportedToPextDate: payload.reportedToPextDate,
         card: parseInt(payload.card, 10),
         port: parseInt(payload.port, 10),
+        city:payload.city,
         cto: payload.cto,
         commentary: '',
         serverDown: [] // Por ahora no enviamos server downs
     };
 
     try {
-        console.log('Enviando subticket al backend:', backendPayload);
+     //   //console.log('Enviando subticket al backend:', backendPayload);
         const response = await apiFetch<BackendSubticket>('/subticket', {
             method: 'POST',
             body: JSON.stringify(backendPayload)
         });
 
-        console.log('Respuesta del backend al crear subticket:', response);
+////console.log('Respuesta del backend al crear subticket:', response);
         return transformSubticketFromBackend(response, backendPayload.ticketId);
     } catch (error) {
-        console.error('Error al crear subticket:', error);
+//console.error('Error al crear subticket:', error);
         throw error;
     }
 };
 
 export const updateSubticket = async (subticketId: string, payload: UpdateSubticketPayload): Promise<Subticket> => {
     // return apiFetch<Subticket>(`/subtickets/${subticketId}`, { method: 'PUT', body: JSON.stringify(payload) });
-    console.log('[MOCK] updateSubticket', subticketId, payload);
+    //('[MOCK] updateSubticket', subticketId, payload);
     const subticketIndex = mockDb.subtickets.findIndex((st: Subticket) => st.id === subticketId);
     if (subticketIndex === -1) throw new Error("Subticket not found");
     mockDb.subtickets[subticketIndex] = { ...mockDb.subtickets[subticketIndex], ...payload };
     return Promise.resolve(mockDb.subtickets[subticketIndex]);
 };
 
-export const closeSubticket = async (subticketId: string, payload: CloseSubticketPayload, currentUser: User): Promise<Subticket> => {
-    // return apiFetch<Subticket>(`/subtickets/${subticketId}/close`, { method: 'POST', body: JSON.stringify(payload) });
-    console.log('[MOCK] closeSubticket', subticketId, payload);
-    const subticketIndex = mockDb.subtickets.findIndex((st: Subticket) => st.id === subticketId);
-    if (subticketIndex === -1) throw new Error("Subticket not found");
-    mockDb.subtickets[subticketIndex] = {
-        ...mockDb.subtickets[subticketIndex],
-        ...payload,
-        status: SubticketStatus.Closed,
-        closingAdvisor: currentUser.name,
-    };
-    return Promise.resolve(mockDb.subtickets[subticketIndex]);
+
+type CloseSubticketResult = {
+    ok: true;
+    subticket: ClosedSubticketResponse;
+    ticket?: Ticket; // si el ticket también cambia
+  } | {
+    ok: false;
+    message: string;
+  };
+
+export const closeSubticket = async (
+  request: RequestCloseSubticket
+): Promise<CloseSubticketResult> => {
+  try {
+    const response = await apiFetch<any>('/subticket/close', {
+      method: 'PUT',
+      body: JSON.stringify({...request,managerId:"f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa"}),
+    });
+
+    ////console.log(request.rootCause)
+
+    const closedSubticket: ClosedSubticketResponse = response.data;
+
+    return { ok: true, subticket: closedSubticket };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Error desconocido al cerrar el subticket.';
+    return { ok: false, message };
+  }
 };
+
+export type ChangeTicketStatusResult = {
+    ok: true;
+    ticket: TicketStatusChangeResponse;
+  } | {
+    ok: false;
+    message: string;
+  };
+
+export const changeTicketStatus = async (
+  request: RequestChangeTicketStatus
+): Promise<ChangeTicketStatusResult> => {
+  try {
+    const response = await apiFetch<{ data: TicketStatusChangeResponse }>('/ticket/changeStatus', {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...request,
+        managerId: request.managerId ?? "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa" // fallback si no se pasa
+      }),
+    });
+
+    return {
+      ok: true,
+      ticket: response.data,
+    };
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : 'Error desconocido al cambiar el estado del ticket.';
+    return {
+      ok: false,
+      message,
+    };
+  }
+};
+  
+
+export const closeTicket = async (
+    request: RequestChangeTicketStatus
+  ): Promise<CloseTicketResult> => {
+    try {
+      const response = await apiFetch<ResponseCloseTicket>('/ticket/changeStatus', {
+        method: 'PUT',
+        body: JSON.stringify({...request})
+      });
+
+      ////console.log(response.ticketStatus)
+      
+      return { ok: true, response };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error desconocido al cerrar el ticket.';
+      return { ok: false, message };
+    }
+  };
+  
+
 
 export const reopenSubticket = async (subticketId: string): Promise<Subticket> => {
     // return apiFetch<Subticket>(`/subtickets/${subticketId}/reopen`, { method: 'POST' });
-    console.log('[MOCK] reopenSubticket', subticketId);
+    ////console.log('[MOCK] reopenSubticket', subticketId);
     const subticketIndex = mockDb.subtickets.findIndex((st: Subticket) => st.id === subticketId);
     if (subticketIndex === -1) throw new Error("Subticket not found");
     const subticket = mockDb.subtickets[subticketIndex];
@@ -311,19 +386,19 @@ export const reopenSubticket = async (subticketId: string): Promise<Subticket> =
 // OTHER DATA
 export const fetchUploadedData = async (): Promise<UploadedRecord[]> => {
     // return apiFetch<UploadedRecord[]>('/cargas');
-    console.log('[MOCK] fetchUploadedData');
+    //console.log('[MOCK] fetchUploadedData');
     return Promise.resolve(mockDb.uploadedData);
 };
 
 export const fetchActionLogs = async (): Promise<ActionLog[]> => {
     // return apiFetch<ActionLog[]>('/logs');
-    console.log('[MOCK] fetchActionLogs');
+    //console.log('[MOCK] fetchActionLogs');
     return Promise.resolve(mockDb.actionLogs);
 };
 
 export const logAction = async (payload: CreateActionLogPayload): Promise<ActionLog> => {
     // return apiFetch<ActionLog>('/logs', { method: 'POST', body: JSON.stringify(payload) });
-    console.log('[MOCK] logAction', payload);
+    //console.log('[MOCK] logAction', payload);
     const newLog: ActionLog = {
         ...payload,
         id: `log-${Date.now()}`,
@@ -368,8 +443,8 @@ function mapBackendType(type: string): TicketType {
 }
 
 function transformTicketFromBackend(bt: BackendTicket): Ticket {
-    console.log('Transformando ticket del backend:', bt);
-    const ticket = {
+    //console.log('Transformando ticket del backend:', bt);
+    const ticket = {                                                                    
         id: (bt.ticketId ?? bt.id ?? '').toString(),
         code: bt.codeTicket ?? (bt.code as any),
         type: mapBackendType(bt.ticketType ?? (bt.type as any)),
@@ -387,24 +462,12 @@ function transformTicketFromBackend(bt: BackendTicket): Ticket {
         pauseHistory: [],
         executionHistory: [],
     };
-    console.log('Ticket transformado:', ticket);
+    //console.log('Ticket transformado:', ticket);
     return ticket;
 }
 
 // ---------------------- Helpers de transformación (subtickets) ----------------------
 
-function mapBackendSubticketStatus(status: string): SubticketStatus {
-    switch (status) {
-        case 'PENDIENTE':
-            return SubticketStatus.Pending;
-        case 'CERRADO':
-        case 'CERRADA':
-        case 'CLOSED':
-            return SubticketStatus.Closed;
-        default:
-            return SubticketStatus.Pending;
-    }
-}
 
 function transformSubticketFromBackend(bs: any, parentTicketId: number | string): Subticket {
     // Validación más detallada
@@ -430,12 +493,18 @@ function transformSubticketFromBackend(bs: any, parentTicketId: number | string)
         createdAt: bs.createEventAt || bs.createdAt || bs.eventStartDate || bs.dateCreated || new Date().toISOString(),
         dateReportPext: bs.dateReportPext || bs.reportedToPextDate || bs.createdAt || new Date().toISOString(),
         status: bs.statusSubticket || bs.status || 'PENDIENTE',
-        managerAperture: bs.createManagerAt || bs.managerAperture || { managerName: 'Desconocido' }
+        managerAperture: bs.createManagerAt || bs.managerAperture || { managerName: 'Desconocido' },
+        managerClose: bs.closeManagerAt || bs.closeManagerAt || { managerName: 'Desconocido' },
+        closeEventAt: bs.closeEventAt,
+        badPraxis:bs.badPraxis,
+        causeProblem: bs.causeProblem,
+        solutions:bs.solutions
+
     };
 
     // Log para debugging
-    console.log('Datos normalizados del subticket:', normalizedData);
-    console.log('Datos originales del subticket:', bs);
+    //console.log('Datos normalizados del subticket:', normalizedData);
+    //console.log('Datos originales del subticket:', bs);
 
     const transformedSubticket: Subticket = {
         id: subticketId,
@@ -449,14 +518,19 @@ function transformSubticketFromBackend(bs: any, parentTicketId: number | string)
         eventStartDate: normalizedData.createdAt,
         reportedToPextDate: normalizedData.dateReportPext,
         creator: normalizedData.managerAperture?.managerName || 'Desconocido',
-        status: mapBackendSubticketStatus(normalizedData.status),
+        closingAdvisor: normalizedData.managerClose?.managerName || 'Desconocido',
+        status:normalizedData.status,
+        eventEndDate:normalizedData.closeEventAt,
+        badPraxis:normalizedData.badPraxis,
+        rootCause:normalizedData.causeProblem,
+        solution:normalizedData.solutions,
         node: bs.nodeAffected || bs.node || '',
         olt: bs.oltAffected || bs.olt || '',
         serverDowns: bs.serverdowns || bs.serverDowns || []
     };
 
     // Log del resultado final
-    console.log('Subticket transformado:', transformedSubticket);
+    //console.log('Subticket transformado:', transformedSubticket);
 
     return transformedSubticket;
 }

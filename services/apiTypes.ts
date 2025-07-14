@@ -56,16 +56,57 @@ export type RequestCreateSubticket = {
 }
 
 
-export type ResponseCreateSubticket = {
-
-
-
-    
-}
-
 export type RequestCreateServerDown = {
     subticketId: number,
     clienteId: number
 }
 
+  export type RequestCloseTicket = {
+    ticketId: number;
+    managerId: string;
+  };
+  
+  export type ResponseCloseTicket = {
+    ticketId: number;
+    managerId: string;
+    ticketStatus: string;
+  };
+  
+  export type CloseTicketResult = {
+    ok: boolean;
+    response?: ResponseCloseTicket;
+    message?: string;
+  };
+export type RequestCloseSubticket = {
+    ticketId: number,
+    subticketId: number,
+    managerId: string,
+    eventStartDate:string,
+    reportedToPextDate:string,
+    eventEndDate: string,
+    causeRoot: string;
+    solution: string;
+    eventResponsible: string;
+    badPraxis: boolean | null;
+    statusPostSLA: string | null;
+    comment: string | null;
+}
 
+export interface ResponseCloseSubticket {
+    data: {
+      message: string;
+      subticketId: number;
+      closedBy: string;  // UUID
+      status: string
+    };
+  }
+
+
+  export interface ResponseTicketStatus{
+    data: {
+      message: string;
+      subticketId: number;
+      closedBy: string;  // UUID
+      status: string
+    };
+  }

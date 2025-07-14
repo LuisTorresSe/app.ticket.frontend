@@ -23,11 +23,14 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
     port: '',
     city: '',
     clientCount: 0,
-    eventStartDate: new Date().toISOString().slice(0, 16),
-    reportedToPextDate: new Date().toISOString().slice(0, 16),
+    eventStartDate: new Date().toLocaleString(),
+    reportedToPextDate: new Date().toLocaleString(),
     node: ticket.node,
     olt: ticket.olt
   });
+
+  console.log(formData+"esto es add subticket")
+  
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -69,8 +72,6 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
     if(validate()){
         const dataPayload = {
             ...formData,
-            eventStartDate: new Date(formData.eventStartDate).toISOString(),
-            reportedToPextDate: new Date(formData.reportedToPextDate).toISOString(),
             cto: formData.cto.trim().toUpperCase(),
             card: formData.card.trim(),
             port: formData.port.trim()

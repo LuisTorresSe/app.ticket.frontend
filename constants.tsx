@@ -86,9 +86,82 @@ export const NODE_OPTIONS = ['Chancay', 'Barranco', 'Benvenutto', 'Camana', 'Cho
 ];
 export const OLT_OPTIONS = ["OLT0_X15_FRANCISCO_MOREYRA", "OLT0_X15_REP_PANAMA", "OLT2_MA5800_X15_TRUJILLO_LARCO", "OLT1_MA5800_X15_ANGAMOSII", "OLT3_MA5800_X2_BENVENUTTO", "OLT1_GALVEZ-II", "OLT2_MA5800_X15_SAN_LUIS", "OLT1_JUAN-PABLO", "OLT1_ALAMOS_X15", "OLT0_NINO_JESUS"];
 export const CITY_OPTIONS = ['Lima', 'Callao', 'San Miguel', 'Barranco',"Surco","Miraflores", "Pueblo Libre","Breña"];
-export const ROOT_CAUSE_OPTIONS = ['Corte de Fibra', 'Falla de Potencia', 'Equipo Dañado'];
-export const SOLUTION_OPTIONS = ['Fusión de Fibra', 'Reemplazo de SFP', 'Reinicio de Equipo'];
-export const STATUS_POST_SLA_OPTIONS = ['Dentro de SLA', 'Fuera de SLA'];
+
+
+
+export const ROOT_CAUSE_OPTIONS = [
+    'Puertos (acopladores) averiados en caja FAT/HBOX',
+    'Buffer dañado en caja CTO/NAP',
+    'Daño/deterioro de caja CTO/NAP',
+    'Falta de implementación de caja CTO/NAP',
+    'Buffer dañado internamente en CTO por sabotaje',
+    'Hilo FO o empalme atenuado en caja CTO/NAP',
+    'Hilo FO roto en caja CTO/NAP',
+    'Hilo FO roto en CTO/NAP anterior',
+    'Mal acondicionamiento de hilos FO en caja CTO/NAP',
+    'Mal acondicionamiento de caja CTO por cambio de poste',
+    'Mal acondicionamiento de hilos FO en caja FAT/HBOX',
+    'Mal acondicionamiento y buffer expuesto en caja CTO',
+    'Mal acondicionamiento y ferretería desprendida en caja CTO',
+    'Puertos (acopladores) averiados en caja CTO/NAP',
+    'Robo de caja de CTO/NAP',
+    'Robo de splitter en caja CTO/NAP',
+    'Splitter averiado en caja CTO/NAP',
+    'Avería en Planta Interna',
+    'Empalme/fusión atenuado en mufa',
+    'Hilo en mal estado por mufa robada',
+    'Hilo roto en mufa',
+    'Hilos y/o buffer mal acondicionados en mufa',
+    'Robo de mufa',
+    'Splitter averiado en mufa',
+  ];
+
+
+
+
+
+  export const SOLUTION_OPTIONS = [
+    // SOLUCIÓN EN LA CAJA CTO/NAP
+    'Instalación de caja FAT/HBOX con splitter',
+    'Acondicionamiento de hilos y/o buffer en caja CTO/NAP',
+    'Acondicionamiento y normalización de caja CTO/NAP',
+    'Cambio de hilo FO alimentador y/o buffer en caja CTO/NAP',
+    'Preparación de extremos de F.O. y empalmes rectos',
+    'Fusión de hilo alimentador en caja CTO/NAP',
+    'Fusión de pigtail en el puerto averiado de la caja CTO',
+    'Instalación de caja CTO con splitter',
+    'Instalación provisional de bandeja de emergencia por robo de caja CTO',
+    'Instalación/cambio de acopladores en caja CTO',
+    'Instalación/cambio de splitter en caja CTO/NAP',
+    'Mantenimiento de acopladores en caja CTO',
+    'Medición de potencia en los puertos de la caja CTO',
+    'Validación de reserva pendiente por convertir a caja CTO',
+  
+    // SOLUCIÓN EN LA MUFA
+    'Acondicionamiento de hilos FO en mufa',
+    'Cambio de hilo FO en mufa punto cero',
+    'Cambio de hilo FO entre mufa y CTO (cambio de cuentas)',
+    'Cambio de hilo FO entre mufas (cambio de cuentas)',
+    'Cambio de splitter averiado en mufa',
+    'Fusión en mufa de hilo FO a entrada de splitter',
+    'Fusión en mufa de hilo FO a hilo FO (empalme recto)',
+    'Fusión en mufa de salida de splitter a hilo FO',
+    'Instalación de mufa de emergencia',
+    'Instalación provisional de bandeja de emergencia por robo de mufa',
+  ];
+  
+export const STATUS_POST_SLA_OPTIONS = ["SOLUCIONADO EN SLA",
+    "SIN FACILIDADES DE ACCESO - ADMINISTRATIVOS",
+    "SIN FACILIDADES DE ACCESO - ZONA PELIGROSA",
+    "SIN FACILIDADES DE ACCESO - ACCIDENTES",
+    "SIN FACILIDADES DE ACCESO - PERMISOS MUNICIPALES",
+    "SIN FACILIDADES DE ACCESO - OTROS",
+    "SIN RESPUESTA",
+    "EN PROCESO DE ATENCIÓN"
+    ];
+
+
+
 export const EVENT_RESPONSIBLE_OPTIONS = ['Equipo de Campo', 'Proveedor Externo', 'Infraestructura'];
 export const PAUSE_REASON_OPTIONS = ['Falta de personal', 'A la espera de repuestos', 'Condiciones climáticas adversas', 'Permisos pendientes'];
 

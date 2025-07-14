@@ -1,3 +1,5 @@
+import { RequestCloseSubticket, RequestCloseTicket } from "./services/apiTypes";
+
 export enum UserRole {
   User = 'Usuario',
   Superuser = 'Superusuario',
@@ -37,6 +39,7 @@ export interface Permissions {
 }
 
 export interface User {
+  fullName: string;
   id: string;
   name: string;
   role: UserRole;
@@ -63,8 +66,8 @@ export enum EmailStatus {
 }
 
 export enum SubticketStatus {
-  Pending = 'Pendiente',
-  Closed = 'Cerrado',
+  Pending = 'PENDIENTE',
+  Closed = 'SOLUCIONADO',
 }
 
 export interface PauseInfo {
@@ -111,7 +114,7 @@ export interface BackendTicket {
 
 // --- Modelo interno usado por la aplicación ---
 export interface Ticket {
-  id: string;
+  id: number;
   code: string;
   type: TicketType;
   reportedBy: string;
@@ -163,7 +166,7 @@ export interface BackendSubticket {
   city: string | null;
   causeProblem: string | null;
   status: string;
-  comment: string | null;
+  commentary: string | null;
   responsable: string | null;
   countClient: number | null;
   badPraxis: boolean | null;
@@ -220,8 +223,8 @@ export interface BackendSubticket {
 }
 
 export interface Subticket {
-  id: string;
-  ticketId: string;
+  id: number;
+  ticketId: number;
   code: string;
   cto: string;
   card: string;
@@ -244,6 +247,31 @@ export interface Subticket {
   comment?: string;
   eventResponsible?: string;
   serverDowns?: ServerDown[];
+}
+
+
+export interface ClosedSubticketResponse {
+  ticketId: number;
+  code: string;
+  cto: string;
+  card: string;
+  port: string;
+  city: string;
+  clientCount: number;
+  eventStartDate: string;
+  reportedToPextDate: string;
+  creator: string;
+  status: string; // o SubticketStatus si tienes el enum
+  node: string;
+  olt: string;
+  closingAdvisor: string;
+  eventEndDate: string;
+  rootCause: string;
+  badPraxis: boolean;
+  solution: string;
+  statusPostSLA: string;
+  comment: string;
+  eventResponsible: string;
 }
 
 export interface ActionLog {
@@ -283,9 +311,7 @@ export interface AppState {
   currentUser: User | null;
   isAuthenticated: boolean;
   activeView: View;
-
   tickets: Ticket[];
-
   subtickets: Subticket[];
   archivedTickets: Ticket[];
   archivedSubtickets: Subticket[];
@@ -304,38 +330,56 @@ export interface AppContextType extends AppState {
   logout: () => void;
   showToast: (message: string, type: 'success' | 'error' | 'warning', duration?: number) => void;
   addTicket: (ticketData: Omit<Ticket, 'id' | 'code' | 'advisor' | 'status' | 'emailStatus' | 'subticketIds' | 'pauseHistory' | 'executionHistory'>) => void;
-  updateTicket: (ticketId: string, updates: Partial<Ticket>) => void;
-  closeTicket: (ticketId: string) => Promise<boolean>;
+  updateTicket: (ticketId: number, updates: Partial<Ticket>) => void;
+  closeTicket: (request:RequestCloseTicket) => Promise<boolean>;
   deleteTicket: (ticketId: string) => void;
   reopenTicket: (ticketId: string) => void;
   restoreTicket: (ticketId: string) => void;
   addSubticket: (subticketData: Omit<Subticket, 'id' | 'code' | 'creator' | 'status'>) => void;
   updateSubticket: (subticketId: string, updates: Partial<Subticket>) => void;
-  closeSubticket: (subticketId: string, closingData: Pick<Subticket, 'eventEndDate' | 'rootCause' | 'badPraxis' | 'solution' | 'statusPostSLA' | 'comment' | 'eventResponsible'>) => Promise<boolean>;
+  closeSubticket: (request: RequestCloseSubticket)=> Promise<boolean>;
   reopenSubticket: (subticketId: string) => void;
   logAction: (ticketCode: string, action: string) => void;
   addUser: (userData: Omit<User, 'id'>) => Promise<void>;
   updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
+  changeTicketStatus: (request:RequestChangeTicketStatus)=>Promise<boolean>
 }
+
+
+export interface RequestChangeTicketStatus{
+  ticketId:number, 
+  managerId:string,
+  status:string
+  reasonForPause?:string 
+}
+
+export type TicketStatusChangeResponse = {
+  managerId: string;
+  ticketId: number;
+  status: TicketStatus;
+};
 
 export interface RequestCreateTicket {
   managerId: string;
   type: string;
   report: string;
   diagnosis: string;
-  createAtEvent: string;
+  createAtEvent: Date;
   unavailability: boolean;
   nodeAffected: string;
   oltAffected: string;
 }
 
 export interface RequestCreateSubticket {
+  
     createManagerId: string;
     ticketId: number;
-    dateReportPext: string;
+    eventStartDate:string;
+    reportedToPextDate: string;
     card: number;
     port: number;
+    city:string;
     cto: string;
     commentary: string;
     serverDown?: RequestCreateServerDown[];

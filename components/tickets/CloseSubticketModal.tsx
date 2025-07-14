@@ -8,19 +8,24 @@ import { useAppContext } from '../../context/AppContext';
 import { suggestClosingSolution } from '../../services/geminiService';
 import { ICONS } from '../../constants';
 import Spinner from '../common/Spinner';
+import { RequestCloseSubticket } from '@/services/apiTypes';
 
 interface CloseSubticketModalProps {
   subticket: Subticket;
   ticket?: Ticket;
-  onSubmit: (closingData: Partial<Subticket>) => void | Promise<void>;
+  onSubmit: (closingData: RequestCloseSubticket) => void | Promise<void>;
   onCancel: () => void;
 }
 
+
 const CloseSubticketModal: React.FC<CloseSubticketModalProps> = ({ subticket, ticket, onSubmit, onCancel }) => {
     const { currentUser, tickets } = useAppContext();
-    const [formData, setFormData] = useState({
-        eventEndDate: new Date().toISOString().slice(0, 16),
-        rootCause: '',
+    const [formData, setFormData] = useState<RequestCloseSubticket>({
+        ticketId: Number(subticket.ticketId),
+        subticketId: Number(subticket.id),
+        managerId: currentUser?.id ?? "",
+        eventEndDate: new Date(),
+        causeRoot: '',
         badPraxis: false,
         solution: '',
         statusPostSLA: '',
@@ -30,7 +35,7 @@ const CloseSubticketModal: React.FC<CloseSubticketModalProps> = ({ subticket, ti
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoadingSuggestion, setLoadingSuggestion] = useState(false);
 
-    const parentTicket = ticket || tickets.find(t => t.id === subticket.ticketId);
+    const parentTicket = ticket || tickets.find(t => t.id === Number(subticket.ticketId));
 
     const handleGetSuggestion = async () => {
         if(!parentTicket) return;
@@ -49,13 +54,14 @@ const CloseSubticketModal: React.FC<CloseSubticketModalProps> = ({ subticket, ti
             setLoadingSuggestion(false);
         }
     }
+    console.log(formData.causeRoot +"Estamos en form")
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
         if (!formData.eventEndDate) newErrors.eventEndDate = 'La fecha de fin del evento es requerida.';
         else if (new Date(formData.eventEndDate) < new Date(subticket.eventStartDate)) newErrors.eventEndDate = 'La fecha de fin no puede ser anterior a la fecha de inicio.';
         else if (new Date(formData.eventEndDate) > new Date()) newErrors.eventEndDate = 'La fecha de fin no puede ser en el futuro.';
-        if (!formData.rootCause) newErrors.rootCause = 'La causa raíz es requerida.';
+        if (!formData.causeRoot) newErrors.rootCause = 'La causa raíz es requerida.';
         if (!formData.solution) newErrors.solution = 'La solución es requerida.';
         if (!formData.eventResponsible) newErrors.eventResponsible = 'El responsable del evento es requerido.';
         setErrors(newErrors);
@@ -72,6 +78,7 @@ const CloseSubticketModal: React.FC<CloseSubticketModalProps> = ({ subticket, ti
         }
     };
 
+
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
              <div className="flex justify-between items-center">
@@ -80,7 +87,7 @@ const CloseSubticketModal: React.FC<CloseSubticketModalProps> = ({ subticket, ti
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <Input label="Fecha de Fin del Evento" type="datetime-local" value={formData.eventEndDate} onChange={e => setFormData({...formData, eventEndDate: e.target.value})} error={errors.eventEndDate} />
-                 <Select label="Causa Raíz" value={formData.rootCause} onChange={e => setFormData({...formData, rootCause: e.target.value})} error={errors.rootCause}>
+                 <Select label="Causa Raíz" value={formData.causeRoot} onChange={e => setFormData({...formData, causeRoot: e.target.value})} error={errors.rootCause}>
                      <option value="">Seleccione Causa...</option>
                      {ROOT_CAUSE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                  </Select>
@@ -92,7 +99,7 @@ const CloseSubticketModal: React.FC<CloseSubticketModalProps> = ({ subticket, ti
                      <option value="">Seleccione Responsable...</option>
                      {EVENT_RESPONSIBLE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                  </Select>
-                 <Select label="Estado Post SLA (Opcional)" value={formData.statusPostSLA} onChange={e => setFormData({...formData, statusPostSLA: e.target.value})}>
+                 <Select label="Estado Post SLA" value={formData.statusPostSLA} onChange={e => setFormData({...formData, statusPostSLA: e.target.value})}>
                       <option value="">Seleccione Estado...</option>
                      {STATUS_POST_SLA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                  </Select>

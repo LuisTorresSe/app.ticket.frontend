@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { TICKET_TYPES, REPORTED_BY_OPTIONS, DIAGNOSIS_OPTIONS, NODE_OPTIONS, OLT_OPTIONS } from '../../constants';
 import Button from '../common/Button';
@@ -42,14 +42,19 @@ const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished, manag
     return Object.keys(newErrors).length === 0;
   };
 
+
+  console.log(formData.createAtEvent)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
       const ticketPayload = {
         managerId,
-        ...formData,
-        createAtEvent: new Date(formData.createAtEvent).toISOString(),
+        ...formData
       };
+
+      console.log(ticketPayload.createAtEvent + "esto es form");
+
 
       if (ticketToEdit) {
         updateTicket(ticketToEdit.id, ticketPayload);

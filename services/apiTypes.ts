@@ -12,101 +12,99 @@ export type CloseSubticketPayload = Pick<Subticket, 'eventEndDate' | 'rootCause'
 
 // Generic API response for success/failure on actions that don't return full objects
 export interface ApiResponse {
-    success: boolean;
-    message?: string;
+  success: boolean;
+  message?: string;
 }
 
-
-
 export type RequestCreateTicket = {
-    managerId: number,
-    type: TicketType,
-    report: string,
-    diagnosis: string,
-    createAtEvent: Date,
-    unavailability: boolean,
-    nodeaffected: string,
-    oltaffected: string,
+  managerId: number,
+  type: TicketType,
+  report: string,
+  diagnosis: string,
+  createAtEvent: Date,
+  unavailability: boolean,
+  nodeaffected: string,
+  oltaffected: string,
 }
 
 
 export type ResponseCreateTicket = {
-    ticketId: number,
-    codeTicket: string,
-    createManagerId: number,
-    type: string,
-    report: string
-    diagnosis: string,
-    createAtEvent: Date,
-    unavailability: boolean,
-    nodeAffected: string,
-    oltAffected: string,
-    comment: string,
-    status: string
+  ticketId: number,
+  codeTicket: string,
+  createManagerId: number,
+  type: string,
+  report: string
+  diagnosis: string,
+  createAtEvent: Date,
+  unavailability: boolean,
+  nodeAffected: string,
+  oltAffected: string,
+  comment: string,
+  status: string
 }
 
 
 export type RequestCreateSubticket = {
-    createManagerId: number,
-    ticketId: number,
-    dateReportPext: Date,
-    card: number,
-    port: number
-    serverDown: RequestCreateServerDown[]
+  createManagerId: number,
+  ticketId: number,
+  dateReportPext: Date,
+  card: number,
+  port: number
+  serverDown: RequestCreateServerDown[]
 }
 
 
 export type RequestCreateServerDown = {
-    subticketId: number,
-    clienteId: number
+  subticketId: number,
+  clienteId: number
 }
 
-  export type RequestCloseTicket = {
-    ticketId: number;
-    managerId: string;
-  };
-  
-  export type ResponseCloseTicket = {
-    ticketId: number;
-    managerId: string;
-    ticketStatus: string;
-  };
-  
-  export type CloseTicketResult = {
-    ok: boolean;
-    response?: ResponseCloseTicket;
-    message?: string;
-  };
+export type RequestCloseTicket = {
+  ticketId: number;
+  managerId: string;
+};
+
+export type ResponseCloseTicket = {
+  ticketId: number;
+  managerId: string;
+  ticketStatus: string;
+};
+
+export type CloseTicketResult = {
+  ok: boolean;
+  response?: ResponseCloseTicket;
+  message?: string;
+};
 export type RequestCloseSubticket = {
-    ticketId: number,
-    subticketId: number,
-    managerId: string,
-    eventStartDate:string,
-    reportedToPextDate:string,
-    eventEndDate: string,
-    causeRoot: string;
-    solution: string;
-    eventResponsible: string;
-    badPraxis: boolean | null;
-    statusPostSLA: string | null;
-    comment: string | null;
+  ticketId: number,
+  subticketId: number,
+  managerId: string,
+  eventStartDate: string,
+  reportedToPextDate: string,
+  eventEndDate: string,
+  causeRoot: string;
+  solution: string;
+  eventResponsible: string;
+  badPraxis: boolean | null;
+  statusPostSLA: string | null;
+  comment: string | null;
 }
 
 export interface ResponseCloseSubticket {
-    data: {
-      message: string;
-      subticketId: number;
-      closedBy: string;  // UUID
-      status: string
-    };
-  }
+  data: {
+    message: string;
+    subticketId: number;
+    closedBy: string;  // UUID
+    status: string
+  };
+}
 
 
-  export interface ResponseTicketStatus{
-    data: {
-      message: string;
-      subticketId: number;
-      closedBy: string;  // UUID
-      status: string
-    };
-  }
+export interface ResponseTicketStatus {
+  data: {
+    message: string;
+    subticketId: number;
+    closedBy: string;  // UUID
+    status: string
+  };
+}

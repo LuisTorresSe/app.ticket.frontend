@@ -1,16 +1,19 @@
 import { TicketType } from '../types';
 
 export const formatDate = (dateString?: string) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleString('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-};
+    if (!dateString) return 'N/A';
+  
+    return new Date(dateString).toLocaleString('es-PE', {
+      timeZone: 'America/Lima',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
+  
 
 export const getTypeSuffix = (type: TicketType) => {
     switch (type) {

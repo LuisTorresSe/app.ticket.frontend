@@ -18,7 +18,7 @@ import { CloseSubticketPayload, RequestCloseSubticket } from '../../services/api
 
 
 interface TicketItemProps {
-  ticket: Ticket;
+    ticket: Ticket;
 }
 
 const statusConfig: Record<TicketStatus, { color: string; darkColor: string }> = {
@@ -38,8 +38,8 @@ const StatusIndicator: React.FC<{ status: TicketStatus }> = ({ status }) => {
 const EmailStatusIndicator: React.FC<{ status: EmailStatus }> = ({ status }) => {
     const isDeclared = status === EmailStatus.Declared;
     const isDarkTheme = document.documentElement.classList.contains('dark');
-    const color = isDeclared 
-        ? (isDarkTheme ? 'bg-green-500' : 'bg-green-600') 
+    const color = isDeclared
+        ? (isDarkTheme ? 'bg-green-500' : 'bg-green-600')
         : (isDarkTheme ? 'bg-red-500' : 'bg-red-600');
 
     return (
@@ -52,15 +52,15 @@ const EmailStatusIndicator: React.FC<{ status: EmailStatus }> = ({ status }) => 
 
 
 const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
-    const { currentUser,  closeTicket, changeTicketStatus,updateTicket, deleteTicket, subtickets, showToast, closeSubticket, logAction } = useAppContext();
+    const { currentUser, closeTicket, changeTicketStatus, updateTicket, deleteTicket, subtickets, showToast, closeSubticket, logAction } = useAppContext();
     const [isExpanded, setExpanded] = useState(false);
-    const [isReportVisible, setReportVisible] = useState(false); 
+    const [isReportVisible, setReportVisible] = useState(false);
     const [isSubticketModalOpen, setSubticketModalOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [isClosingModalOpen, setClosingModalOpen] = useState(false);
     const [isStatusChangeModalOpen, setStatusChangeModalOpen] = useState(false);
     const [statusChangeTarget, setStatusChangeTarget] = useState<TicketStatus | null>(null);
-    const [statusForm, setStatusForm] = useState<{reason?: string, dateTime?: string}>({});
+    const [statusForm, setStatusForm] = useState<{ reason?: string, dateTime?: string }>({});
     const [isStatusMenuOpen, setStatusMenuOpen] = useState(false);
     const [elapsedTime, setElapsedTime] = useState('');
     const statusMenuRef = useRef<HTMLDivElement>(null);
@@ -74,10 +74,10 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
 
     const pendingSubtickets = ticketSubtickets.filter(st => st.status === SubticketStatus.Pending);
 
+    console.log
 
-
-    const totalClients = useMemo(() => 
-        ticketSubtickets.reduce((sum, st) => sum + st.clientCount, 0), 
+    const totalClients = useMemo(() =>
+        ticketSubtickets.reduce((sum, st) => sum + st.clientCount, 0),
         [ticketSubtickets]
     );
 
@@ -143,39 +143,39 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
 
     const handleBatchClose = async (closingData: RequestCloseSubticket) => {
         const openSubtickets = ticketSubtickets.filter(st => st.status === SubticketStatus.Pending);
-      
+
         if (openSubtickets.length === 0) {
-          showToast("No hay subtickets pendientes para cerrar.", "info");
-          return;
+            showToast("No hay subtickets pendientes para cerrar.", "info");
+            return;
         }
-      
+
         // Ejecuta las promesas de cierre en paralelo
         const results = await Promise.all(
-          openSubtickets.map(async (st) => {
-            const request: RequestCloseSubticket = {
-              ...closingData,
-              subticketId: st.id,
-              ticketId: st.ticketId,
-              finalEvent: closingData.finalEvent ?? new Date().toISOString(),
-            };
-      
-            const success = await closeSubticket(request);
-            return { success, subticketCode: st.code };
-          })
+            openSubtickets.map(async (st) => {
+                const request: RequestCloseSubticket = {
+                    ...closingData,
+                    subticketId: st.id,
+                    ticketId: st.ticketId,
+                    finalEvent: closingData.finalEvent ?? new Date().toISOString(),
+                };
+
+                const success = await closeSubticket(request);
+                return { success, subticketCode: st.code };
+            })
         );
-      
+
         const failed = results.filter(r => !r.success);
-      
+
         if (failed.length === 0) {
-          showToast(`✅ Se cerraron correctamente ${openSubtickets.length} subticket(s).`, "success");
+            showToast(`✅ Se cerraron correctamente ${openSubtickets.length} subticket(s).`, "success");
         } else {
-          const failedCodes = failed.map(f => f.subticketCode).join(", ");
-          showToast(`⚠️ Algunos subtickets no se cerraron: ${failedCodes}`, "warning");
+            const failedCodes = failed.map(f => f.subticketCode).join(", ");
+            showToast(`⚠️ Algunos subtickets no se cerraron: ${failedCodes}`, "warning");
         }
-      
+
         setClosingModalOpen(false);
-      };
-    
+    };
+
     const openStatusChangeModal = (targetStatus: TicketStatus) => {
         setStatusChangeTarget(targetStatus);
         setStatusForm({
@@ -191,14 +191,14 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                 showToast('No se puede marcar como Solucionado hasta que todos los subtickets estén cerrados', 'warning');
                 return;
             }
-    
+
             const request: RequestChangeTicketStatus = {
                 ticketId: ticket.id,
                 managerId: "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa",
                 status: newStatus
-            // Asumiendo que usas currentUser del context
+                // Asumiendo que usas currentUser del context
             };
-    
+
             const success = await closeTicket(request); // Llama al contexto que hace la petición
 
             if (success) {
@@ -207,17 +207,17 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
             } else {
                 showToast('No se pudo cerrar el ticket. Intenta nuevamente.', 'error');
             }
-    
+
             return;
         }
-    
+
         // Otros cambios de estado
         const requiresModal =
             (newStatus === TicketStatus.OnHold) ||
             (ticket.status === TicketStatus.OnHold) ||
             (newStatus === TicketStatus.InProgress) ||
             (ticket.status === TicketStatus.InProgress);
-    
+
         if (requiresModal && newStatus !== ticket.status) {
             openStatusChangeModal(newStatus);
         } else if (newStatus !== ticket.status) {
@@ -226,109 +226,110 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
             showToast(`Ticket ${ticket.code} actualizado a ${newStatus}`, 'success');
         }
     };
-    
-    
+
+
     const handleStatusModalSubmit = async () => {
         if (!statusChangeTarget) return;
-      
+
         const changeTimestamp = statusForm.dateTime
-          ? new Date(statusForm.dateTime).toISOString()
-          : new Date().toISOString();
-      
+            ? new Date(statusForm.dateTime).toISOString()
+            : new Date().toISOString();
+
         let request: RequestChangeTicketStatus;
         let logMessage = `Estado cambiado a ${statusChangeTarget}`;
-      
+
         const newPauseHistory = ticket.pauseHistory?.map(p => ({ ...p })) ?? [];
         const newExecutionHistory = ticket.executionHistory?.map(e => ({ ...e })) ?? [];
-      
+
         // Finalizar pausa previa si venía de OnHold
         if (ticket.status === TicketStatus.OnHold) {
-          const lastPause = newPauseHistory.at(-1);
-          if (lastPause && !lastPause.endTime) {
-            lastPause.endTime = changeTimestamp;
-          }
+            const lastPause = newPauseHistory.at(-1);
+            if (lastPause && !lastPause.endTime) {
+                lastPause.endTime = changeTimestamp;
+            }
         }
-      
+
         // Finalizar ejecución previa si venía de InProgress
         if (ticket.status === TicketStatus.InProgress) {
-          const lastExec = newExecutionHistory.at(-1);
-          if (lastExec && !lastExec.endTime) {
-            lastExec.endTime = changeTimestamp;
-          }
+            const lastExec = newExecutionHistory.at(-1);
+            if (lastExec && !lastExec.endTime) {
+                lastExec.endTime = changeTimestamp;
+            }
         }
-      
+
         // Construir request según el nuevo estado
         switch (statusChangeTarget) {
-          case TicketStatus.OnHold:
-            if (!statusForm.reason) {
-              showToast('Se requiere un motivo de pausa.', 'error');
-              return;
-            }
-      
-            const newPause: PauseInfo = {
-              startTime: changeTimestamp,
-              reason: statusForm.reason
-            };
-            newPauseHistory.push(newPause);
-      
-            request = {
-              ticketId: ticket.id,
-              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
-              status: TicketStatus.OnHold,
-              reasonForPause: statusForm.reason
-            };
-      
-            logMessage += ` (Motivo: ${statusForm.reason})`;
-            break;
-      
-          case TicketStatus.InProgress:
-            const newExec: ExecutionInfo = { startTime: changeTimestamp };
-            newExecutionHistory.push(newExec);
-      
-            request = {
-              ticketId: ticket.id,
-              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
-              status: TicketStatus.InProgress
-            };
-            break;
-      
-          case TicketStatus.Pending:
-            request = {
-              ticketId: ticket.id,
-              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
-              status: TicketStatus.Pending
-            };
-            console.log("estamos en pendiente")
-            break;
-      
-          default:
-            // Fallback para cualquier otro estado como Solved, etc.
-            request = {
-              ticketId: ticket.id,
-              managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
-              status: statusChangeTarget
-            };
-            break;
+            case TicketStatus.OnHold:
+                if (!statusForm.reason) {
+                    showToast('Se requiere un motivo de pausa.', 'error');
+                    return;
+                }
+
+                const newPause: PauseInfo = {
+                    startTime: changeTimestamp,
+                    reason: statusForm.reason
+                };
+                newPauseHistory.push(newPause);
+
+                request = {
+                    ticketId: ticket.id,
+                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    status: TicketStatus.OnHold,
+                    reasonForPause: statusForm.reason
+                };
+
+                logMessage += ` (Motivo: ${statusForm.reason})`;
+                break;
+
+            case TicketStatus.InProgress:
+                const newExec: ExecutionInfo = { startTime: changeTimestamp };
+                newExecutionHistory.push(newExec);
+
+                request = {
+                    ticketId: ticket.id,
+                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    status: TicketStatus.InProgress
+                };
+                break;
+
+            case TicketStatus.Pending:
+                request = {
+                    ticketId: ticket.id,
+                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    status: TicketStatus.Pending
+                };
+                console.log("estamos en pendiente")
+                break;
+
+            default:
+                // Fallback para cualquier otro estado como Solved, etc.
+                request = {
+                    ticketId: ticket.id,
+                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    status: statusChangeTarget
+                };
+                break;
         }
-      
+
         const updates: Partial<Ticket> = {
-          status: statusChangeTarget,
-          pauseHistory: newPauseHistory,
-          executionHistory: newExecutionHistory
+            status: statusChangeTarget,
+            pauseHistory: newPauseHistory,
+            executionHistory: newExecutionHistory
         };
-      
+
         const success = await changeTicketStatus(request);
-      
+
         if (success) {
-          logAction(ticket.code, logMessage);
-          showToast(`Ticket ${ticket.code} actualizado a ${statusChangeTarget}`, 'success');
+            logAction(ticket.code, logMessage);
+            showToast(`Ticket ${ticket.code} actualizado a ${statusChangeTarget}`, 'success');
         }
-      
+
         setStatusChangeModalOpen(false);
         setStatusChangeTarget(null);
         setStatusForm({});
-      };
-      
+    };
+
+    console.log(ticket.creationDate + ticket.id)
 
     const getModalTitle = () => {
         const from = ticket.status;
@@ -340,10 +341,10 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
         if (from === TicketStatus.InProgress) return `Finalizar Ejecución y cambiar a "${to}"`;
         if (to === TicketStatus.OnHold) return 'Pausar Ticket';
         if (to === TicketStatus.InProgress) return 'Iniciar Ejecución';
-        
+
         return `Cambiar estado a "${to}"`;
     };
-    
+
     const needsReasonForPause = statusChangeTarget === TicketStatus.OnHold;
     const isActionable = ticket.status !== TicketStatus.Solved;
 
@@ -364,7 +365,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                             <span>Clientes: {totalClients}</span>
                         </span>
                     </p>
-                     <div className="flex items-center space-x-4 mt-2">
+                    <div className="flex items-center space-x-4 mt-2">
                         {ticket.pauseHistory.length > 0 && (
                             <div className="text-xs text-yellow-400/80">
                                 <strong>Pausado: </strong>
@@ -372,9 +373,9 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                             </div>
                         )}
                         {ticket.executionHistory.length > 0 && (
-                             <div className="text-xs text-blue-400/80">
+                            <div className="text-xs text-blue-400/80">
                                 <strong>En Ejecución: </strong>
-                                 {ticket.status === TicketStatus.InProgress ? 'Actualmente' : calculateTotalDuration(ticket.executionHistory)}
+                                {ticket.status === TicketStatus.InProgress ? 'Actualmente' : calculateTotalDuration(ticket.executionHistory)}
                             </div>
                         )}
                     </div>
@@ -392,7 +393,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                         <div className="text-xs text-text-secondary">{ticket.status === TicketStatus.Solved ? 'Duración Total' : 'Tiempo Activo'}</div>
                     </div>
                     <EmailStatusIndicator status={ticket.emailStatus} />
-                     <div className="relative" ref={statusMenuRef}>
+                    <div className="relative" ref={statusMenuRef}>
                         <button
                             type="button"
                             className="disabled:cursor-not-allowed"
@@ -410,16 +411,16 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                             <StatusIndicator status={ticket.status} />
                         </button>
                         {isActionable && canEdit && (
-                            <div 
-                              className={`absolute top-full right-0 mt-2 w-48 bg-secondary border border-border-color rounded-md shadow-lg z-10 transition-opacity ${isStatusMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
-                              role="listbox"
+                            <div
+                                className={`absolute top-full right-0 mt-2 w-48 bg-secondary border border-border-color rounded-md shadow-lg z-10 transition-opacity ${isStatusMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                                role="listbox"
                             >
                                 {Object.values(TicketStatus).map(s => (
                                     <button
                                         key={s}
-                                        onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            handleStatusChange(s); 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStatusChange(s);
                                             setStatusMenuOpen(false);
                                         }}
                                         disabled={s === ticket.status}
@@ -432,7 +433,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                         )}
                     </div>
                     <button className="text-text-secondary hover:text-accent transition-transform transform-gpu" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                       {ICONS.chevronDown}
+                        {ICONS.chevronDown}
                     </button>
                 </div>
             </div>
@@ -451,25 +452,25 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                     <div className="mb-4">
                         <h4 className="font-bold mb-2">Subtickets</h4>
                         <div className="space-y-2">
-                           {ticketSubtickets.length > 0 ? (
+                            {ticketSubtickets.length > 0 ? (
                                 ticketSubtickets.map(st => <SubticketItem key={st.id} subticket={st} ticketStatus={ticket.status} />)
-                           ) : (
+                            ) : (
                                 <p className="text-sm text-text-secondary italic">No hay subtickets para este ticket.</p>
-                           )}
+                            )}
                         </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 pt-4 border-t border-border-color">
                         {isActionable && canCreate && (
-                             <Button size="sm" onClick={(e) => { e.stopPropagation(); setSubticketModalOpen(true); }}>{ICONS.plus} Añadir Subticket</Button>
+                            <Button size="sm" onClick={(e) => { e.stopPropagation(); setSubticketModalOpen(true); }}>{ICONS.plus} Añadir Subticket</Button>
                         )}
                         <Button size="sm" onClick={handleToggleReport} variant="secondary">
-                           <div className="flex items-center gap-1">
-                             {ICONS.file} {isReportVisible ? 'Ocultar Reporte' : 'Ver Reporte'}
-                           </div>
+                            <div className="flex items-center gap-1">
+                                {ICONS.file} {isReportVisible ? 'Ocultar Reporte' : 'Ver Reporte'}
+                            </div>
                         </Button>
                         {isActionable && canEdit && (
-                             <Button size="sm" onClick={(e) => { e.stopPropagation(); setEditModalOpen(true); }} variant="secondary">{ICONS.edit} Editar Ticket</Button>
+                            <Button size="sm" onClick={(e) => { e.stopPropagation(); setEditModalOpen(true); }} variant="secondary">{ICONS.edit} Editar Ticket</Button>
                         )}
 
                         {isActionable && canEdit && pendingSubtickets.length > 0 && (
@@ -477,7 +478,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                                 {pendingSubtickets.length > 1 ? 'Cerrar Todos los Subtickets' : 'Cerrar Subticket'}
                             </Button>
                         )}
-                        
+
                         {canDelete && (
                             <Button size="sm" onClick={(e) => { e.stopPropagation(); deleteTicket(ticket.id); }} variant="danger">{ICONS.trash} Archivar Ticket</Button>
                         )}
@@ -488,15 +489,15 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                     )}
                 </div>
             )}
-            
+
             <Modal isOpen={isSubticketModalOpen} onClose={() => setSubticketModalOpen(false)} title={`Añadir Subticket a ${ticket.code}`}>
                 <SubticketForm ticket={ticket} onFinished={() => setSubticketModalOpen(false)} />
             </Modal>
-             <Modal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} title={`Editar Ticket ${ticket.code}`} size="lg">
+            <Modal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} title={`Editar Ticket ${ticket.code}`} size="lg">
                 <TicketForm ticketToEdit={ticket} onFinished={() => setEditModalOpen(false)} />
             </Modal>
             <Modal isOpen={isClosingModalOpen} onClose={() => setClosingModalOpen(false)} title={`Cierre por Lotes para ${ticket.code}`} size="lg">
-                <CloseSubticketModal 
+                <CloseSubticketModal
                     onSubmit={handleBatchClose}
                     onCancel={() => setClosingModalOpen(false)}
                     ticket={ticket}
@@ -505,17 +506,17 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
             </Modal>
             <Modal isOpen={isStatusChangeModalOpen} onClose={() => setStatusChangeModalOpen(false)} title={getModalTitle()} size="md">
                 <div className="space-y-4">
-                    <Input 
-                        label="Fecha y Hora del Cambio" 
-                        type="datetime-local" 
-                        value={statusForm.dateTime} 
-                        onChange={e => setStatusForm(prev => ({...prev, dateTime: e.target.value}))} 
+                    <Input
+                        label="Fecha y Hora del Cambio"
+                        type="datetime-local"
+                        value={statusForm.dateTime}
+                        onChange={e => setStatusForm(prev => ({ ...prev, dateTime: e.target.value }))}
                     />
                     {needsReasonForPause && (
-                        <Select 
-                            label="Motivo de la Pausa" 
-                            value={statusForm.reason} 
-                            onChange={e => setStatusForm(prev => ({...prev, reason: e.target.value}))}
+                        <Select
+                            label="Motivo de la Pausa"
+                            value={statusForm.reason}
+                            onChange={e => setStatusForm(prev => ({ ...prev, reason: e.target.value }))}
                         >
                             <option value="">Seleccione un motivo...</option>
                             {PAUSE_REASON_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}

@@ -168,10 +168,13 @@ export const createTicket = async (request: RequestCreateTicket, currentUser: Us
     };
 
     try {
+        console.log(request.createAtEvent + "esto es request")
         const response = await apiFetch<BackendTicket>('/ticket', {
             method: 'POST',
             body: JSON.stringify(backendPayload)
         });
+
+
 
         //console.log('Respuesta del backend al crear ticket:', response);
         return transformTicketFromBackend(response);
@@ -219,20 +222,20 @@ export const fetchAllSubtickets = async (): Promise<Subticket[]> => {
     backendTickets.forEach(bt => {
         const ticketId = bt.ticketId ?? bt.id;
         if (!ticketId) {
-          //  console.warn('Ticket sin ID encontrado:', JSON.stringify(bt, null, 2));
+            //  console.warn('Ticket sin ID encontrado:', JSON.stringify(bt, null, 2));
             return;
         }
-        
+
         if (bt.subtickets && Array.isArray(bt.subtickets)) {
             bt.subtickets.forEach((bst: any) => {
                 try {
-                //    //console.log('Procesando subticket:', JSON.stringify(bst, null, 2));
+                    //    //console.log('Procesando subticket:', JSON.stringify(bst, null, 2));
                     const transformed = transformSubticketFromBackend(bst as BackendSubticket, ticketId);
                     subtickets.push(transformed);
                 } catch (error) {
                     //console.error('Error transformando subticket:', error);
-                   // console.error('Datos del subticket:', JSON.stringify(bst, null, 2));
-                   // console.error('Datos del ticket padre:', JSON.stringify(bt, null, 2));
+                    // console.error('Datos del subticket:', JSON.stringify(bst, null, 2));
+                    // console.error('Datos del ticket padre:', JSON.stringify(bt, null, 2));
                 }
             });
         }
@@ -248,23 +251,23 @@ export const createSubticket = async (payload: CreateSubticketPayload, currentUs
         reportedToPextDate: payload.reportedToPextDate,
         card: parseInt(payload.card, 10),
         port: parseInt(payload.port, 10),
-        city:payload.city,
+        city: payload.city,
         cto: payload.cto,
         commentary: '',
         serverDown: [] // Por ahora no enviamos server downs
     };
 
     try {
-     //   //console.log('Enviando subticket al backend:', backendPayload);
+        //   //console.log('Enviando subticket al backend:', backendPayload);
         const response = await apiFetch<BackendSubticket>('/subticket', {
             method: 'POST',
             body: JSON.stringify(backendPayload)
         });
 
-////console.log('Respuesta del backend al crear subticket:', response);
+        ////console.log('Respuesta del backend al crear subticket:', response);
         return transformSubticketFromBackend(response, backendPayload.ticketId);
     } catch (error) {
-//console.error('Error al crear subticket:', error);
+        //console.error('Error al crear subticket:', error);
         throw error;
     }
 };
@@ -283,86 +286,86 @@ type CloseSubticketResult = {
     ok: true;
     subticket: ClosedSubticketResponse;
     ticket?: Ticket; // si el ticket también cambia
-  } | {
+} | {
     ok: false;
     message: string;
-  };
+};
 
 export const closeSubticket = async (
-  request: RequestCloseSubticket
+    request: RequestCloseSubticket
 ): Promise<CloseSubticketResult> => {
-  try {
-    const response = await apiFetch<any>('/subticket/close', {
-      method: 'PUT',
-      body: JSON.stringify({...request,managerId:"f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa"}),
-    });
+    try {
+        const response = await apiFetch<any>('/subticket/close', {
+            method: 'PUT',
+            body: JSON.stringify({ ...request, managerId: "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa" }),
+        });
 
-    ////console.log(request.rootCause)
+        ////console.log(request.rootCause)
 
-    const closedSubticket: ClosedSubticketResponse = response.data;
+        const closedSubticket: ClosedSubticketResponse = response.data;
 
-    return { ok: true, subticket: closedSubticket };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Error desconocido al cerrar el subticket.';
-    return { ok: false, message };
-  }
+        return { ok: true, subticket: closedSubticket };
+    } catch (error) {
+        const message =
+            error instanceof Error ? error.message : 'Error desconocido al cerrar el subticket.';
+        return { ok: false, message };
+    }
 };
 
 export type ChangeTicketStatusResult = {
     ok: true;
     ticket: TicketStatusChangeResponse;
-  } | {
+} | {
     ok: false;
     message: string;
-  };
+};
 
 export const changeTicketStatus = async (
-  request: RequestChangeTicketStatus
+    request: RequestChangeTicketStatus
 ): Promise<ChangeTicketStatusResult> => {
-  try {
-    const response = await apiFetch<{ data: TicketStatusChangeResponse }>('/ticket/changeStatus', {
-      method: 'PUT',
-      body: JSON.stringify({
-        ...request,
-        managerId: request.managerId ?? "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa" // fallback si no se pasa
-      }),
-    });
+    try {
+        const response = await apiFetch<{ data: TicketStatusChangeResponse }>('/ticket/changeStatus', {
+            method: 'PUT',
+            body: JSON.stringify({
+                ...request,
+                managerId: request.managerId ?? "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa" // fallback si no se pasa
+            }),
+        });
 
-    return {
-      ok: true,
-      ticket: response.data,
-    };
-  } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : 'Error desconocido al cambiar el estado del ticket.';
-    return {
-      ok: false,
-      message,
-    };
-  }
+        return {
+            ok: true,
+            ticket: response.data,
+        };
+    } catch (error) {
+        const message = error instanceof Error
+            ? error.message
+            : 'Error desconocido al cambiar el estado del ticket.';
+        return {
+            ok: false,
+            message,
+        };
+    }
 };
-  
+
 
 export const closeTicket = async (
     request: RequestChangeTicketStatus
-  ): Promise<CloseTicketResult> => {
+): Promise<CloseTicketResult> => {
     try {
-      const response = await apiFetch<ResponseCloseTicket>('/ticket/changeStatus', {
-        method: 'PUT',
-        body: JSON.stringify({...request})
-      });
+        const response = await apiFetch<ResponseCloseTicket>('/ticket/changeStatus', {
+            method: 'PUT',
+            body: JSON.stringify({ ...request })
+        });
 
-      ////console.log(response.ticketStatus)
-      
-      return { ok: true, response };
+        ////console.log(response.ticketStatus)
+
+        return { ok: true, response };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error desconocido al cerrar el ticket.';
-      return { ok: false, message };
+        const message = error instanceof Error ? error.message : 'Error desconocido al cerrar el ticket.';
+        return { ok: false, message };
     }
-  };
-  
+};
+
 
 
 export const reopenSubticket = async (subticketId: string): Promise<Subticket> => {
@@ -444,7 +447,7 @@ function mapBackendType(type: string): TicketType {
 
 function transformTicketFromBackend(bt: BackendTicket): Ticket {
     //console.log('Transformando ticket del backend:', bt);
-    const ticket = {                                                                    
+    const ticket = {
         id: (bt.ticketId ?? bt.id ?? '').toString(),
         code: bt.codeTicket ?? (bt.code as any),
         type: mapBackendType(bt.ticketType ?? (bt.type as any)),
@@ -474,7 +477,7 @@ function transformSubticketFromBackend(bs: any, parentTicketId: number | string)
     if (!bs) {
         throw new Error('Subticket es null o undefined');
     }
-    
+
     // Intentamos extraer un ID del subticket de cualquier fuente posible
     const subticketId = bs.subticketId?.toString() ?? bs.id?.toString() ?? bs.subticketCode?.match(/\d+/)?.[0];
     if (!subticketId) {
@@ -496,9 +499,9 @@ function transformSubticketFromBackend(bs: any, parentTicketId: number | string)
         managerAperture: bs.createManagerAt || bs.managerAperture || { managerName: 'Desconocido' },
         managerClose: bs.closeManagerAt || bs.closeManagerAt || { managerName: 'Desconocido' },
         closeEventAt: bs.closeEventAt,
-        badPraxis:bs.badPraxis,
+        badPraxis: bs.badPraxis,
         causeProblem: bs.causeProblem,
-        solutions:bs.solutions
+        solutions: bs.solutions
 
     };
 
@@ -519,11 +522,11 @@ function transformSubticketFromBackend(bs: any, parentTicketId: number | string)
         reportedToPextDate: normalizedData.dateReportPext,
         creator: normalizedData.managerAperture?.managerName || 'Desconocido',
         closingAdvisor: normalizedData.managerClose?.managerName || 'Desconocido',
-        status:normalizedData.status,
-        eventEndDate:normalizedData.closeEventAt,
-        badPraxis:normalizedData.badPraxis,
-        rootCause:normalizedData.causeProblem,
-        solution:normalizedData.solutions,
+        status: normalizedData.status,
+        eventEndDate: normalizedData.closeEventAt,
+        badPraxis: normalizedData.badPraxis,
+        rootCause: normalizedData.causeProblem,
+        solution: normalizedData.solutions,
         node: bs.nodeAffected || bs.node || '',
         olt: bs.oltAffected || bs.olt || '',
         serverDowns: bs.serverdowns || bs.serverDowns || []

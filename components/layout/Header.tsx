@@ -4,6 +4,7 @@ import { useAppContext } from '../../context/AppContext';
 import { ICONS } from '../../constants';
 import NotificationPanel from './NotificationPanel';
 import { View, Theme } from '../../types';
+import { useAuthStore } from '@/store/authStore';
 
 const viewTitles: Record<View, string> = {
     dashboard: 'Dashboard',
@@ -16,11 +17,15 @@ const viewTitles: Record<View, string> = {
 }
 
 const Header: React.FC = () => {
-    const { currentUser, logout, activeView, theme, changeTheme } = useAppContext();
+    const { activeView, theme, changeTheme } = useAppContext();
+
+    const { login, user, logout } = useAuthStore()
+
+
     const [isNotificationsOpen, setNotificationsOpen] = useState(false);
     const [isThemeMenuOpen, setThemeMenuOpen] = useState(false);
     const [isUserMenuOpen, setUserMenuOpen] = useState(false);
-    
+
     const themeMenuRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const notificationRef = useRef<HTMLDivElement>(null);
@@ -33,7 +38,7 @@ const Header: React.FC = () => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
                 setUserMenuOpen(false);
             }
-             if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
                 setNotificationsOpen(false);
             }
         };
@@ -47,10 +52,10 @@ const Header: React.FC = () => {
         { key: 'light', label: 'Claro' },
         { key: 'dark', label: 'Oscuro' },
         { key: 'gamer', label: 'Gamer' },
-        { key: 'adult', label: 'Adulto' },
+        { key: 'adult', label: 'Golden' },
     ];
 
-    if (!currentUser) {
+    if (!user) {
         return null; // Should not happen in a protected route
     }
 
@@ -59,7 +64,7 @@ const Header: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-bold text-text-primary capitalize">{viewTitles[activeView]}</h1>
             <div className="flex items-center space-x-4">
                 <div className="relative" ref={themeMenuRef}>
-                    <button 
+                    <button
                         onClick={() => setThemeMenuOpen(prev => !prev)}
                         className="p-2 rounded-full hover:bg-border-color text-text-secondary hover:text-text-primary transition-colors"
                         aria-label="Seleccionar tema"
@@ -67,7 +72,7 @@ const Header: React.FC = () => {
                         {ICONS.shirt}
                     </button>
                     {isThemeMenuOpen && (
-                         <div className="absolute right-0 mt-2 w-40 bg-secondary border border-border-color rounded-lg shadow-xl z-20 py-1 animate-fade-in">
+                        <div className="absolute right-0 mt-2 w-40 bg-secondary border border-border-color rounded-lg shadow-xl z-20 py-1 animate-fade-in">
                             {themeOptions.map(option => (
                                 <button
                                     key={option.key}
@@ -86,7 +91,7 @@ const Header: React.FC = () => {
                 </div>
 
                 <div className="relative" ref={notificationRef}>
-                    <button 
+                    <button
                         onClick={() => setNotificationsOpen(!isNotificationsOpen)}
                         className="p-2 rounded-full hover:bg-border-color text-text-secondary hover:text-text-primary transition-colors"
                     >
@@ -97,17 +102,17 @@ const Header: React.FC = () => {
 
                 <div className="relative" ref={userMenuRef}>
                     <button onClick={() => setUserMenuOpen(prev => !prev)} className="flex items-center space-x-2 p-1 rounded-md hover:bg-primary">
-                       <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
-                           {currentUser.name.charAt(0)}
-                       </div>
-                       <span className="text-sm text-text-primary font-semibold hidden sm:inline">{currentUser.name}</span>
-                       <div className="text-text-secondary">{ICONS.chevronDown}</div>
+                        <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
+                            {user.fullName.charAt(0)}
+                        </div>
+                        <span className="text-sm text-text-primary font-semibold hidden sm:inline">{user.fullName}</span>
+                        <div className="text-text-secondary">{ICONS.chevronDown}</div>
                     </button>
                     {isUserMenuOpen && (
                         <div className="absolute right-0 mt-2 w-56 bg-secondary border border-border-color rounded-lg shadow-xl z-20 py-1 animate-fade-in">
                             <div className="px-4 py-2 border-b border-border-color">
-                                <p className="text-sm font-semibold text-text-primary">{currentUser.name}</p>
-                                <p className="text-xs text-text-secondary">{currentUser.role}</p>
+                                <p className="text-sm font-semibold text-text-primary">{user.fullName}</p>
+                                <p className="text-xs text-text-secondary">{user.roles}</p>
                             </div>
                             <button
                                 onClick={() => {

@@ -8,6 +8,7 @@ import { formatDate, calculateDuration } from '../../lib/utils';
 import Modal from '../common/Modal';
 import ColumnConfigModal from './ColumnConfigModal';
 import { exportToExcel } from '../../lib/xlsx';
+import { can } from '@/utils/permissions';
 
 const ALL_COLUMNS = [
     { key: 'ticket', header: 'TICKET' }, { key: 'fecha', header: 'Fecha' },
@@ -47,7 +48,7 @@ export default function CargasView(): JSX.Element {
     const [itemsPerPage, setItemsPerPage] = useState(15);
     const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-    const canConfigure = currentUser?.permissions.cargas.configure ?? false;
+    const canConfigure = can("cargar.view") ?? false;
 
     useEffect(() => {
         const savedColumns = localStorage.getItem(LOCAL_STORAGE_COLUMNS_KEY);
@@ -65,10 +66,10 @@ export default function CargasView(): JSX.Element {
         setItemsPerPage(Number(e.target.value));
         setCurrentPage(1);
     };
-    
+
     const mergedData = useMemo(() => {
         const serverDownRecords: UploadedRecord[] = [];
-        
+
         subtickets.forEach(subticket => {
             const ticket = tickets.find(t => t.id === subticket.ticketId);
             if (ticket && subticket.serverDowns && subticket.serverDowns.length > 0) {
@@ -97,29 +98,29 @@ export default function CargasView(): JSX.Element {
 
         return serverDownRecords;
     }, [tickets, subtickets]);
-    
+
     const filteredData = useMemo(() => {
         return mergedData.filter(record => {
-            const searchMatch = !searchTerm.trim() 
-                ? true 
+            const searchMatch = !searchTerm.trim()
+                ? true
                 : (record as any)[searchCriteria]?.toString().toLowerCase().includes(searchTerm.toLowerCase());
 
-            const statusMatch = statusFilter === 'Todos' 
-                ? true 
+            const statusMatch = statusFilter === 'Todos'
+                ? true
                 : record.estadoCuenta === statusFilter;
 
             return searchMatch && statusMatch;
         });
     }, [mergedData, searchTerm, searchCriteria, statusFilter]);
-    
+
     const paginatedData = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredData.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredData, currentPage, itemsPerPage]);
-    
+
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-    const columnHeaders = useMemo(() => visibleColumns.map(key => ALL_COLUMNS.find(c => c.key === key)).filter(Boolean) as {key: string, header: string}[], [visibleColumns]);
+    const columnHeaders = useMemo(() => visibleColumns.map(key => ALL_COLUMNS.find(c => c.key === key)).filter(Boolean) as { key: string, header: string }[], [visibleColumns]);
 
     const handleSaveColumnConfig = (config: { columns: string[] }) => {
         setVisibleColumns(config.columns);
@@ -142,7 +143,7 @@ export default function CargasView(): JSX.Element {
             showToast('No hay datos para exportar.', 'warning');
             return;
         }
-    
+
         const dataToExport = filteredData.map(record => {
             const exportedRecord: Record<string, any> = {};
             columnHeaders.forEach(col => {
@@ -154,8 +155,8 @@ export default function CargasView(): JSX.Element {
             });
             return exportedRecord;
         });
-    
-        exportToExcel(dataToExport, `servs_down_${new Date().toISOString().slice(0,10)}`);
+
+        exportToExcel(dataToExport, `servs_down_${new Date().toISOString().slice(0, 10)}`);
     };
 
     return (
@@ -173,14 +174,14 @@ export default function CargasView(): JSX.Element {
                                 {SEARCHABLE_COLUMNS.map(col => (<option key={col.key} value={col.key}>{col.name}</option>))}
                             </select>
                             <input
-                              type="text"
-                              placeholder={`Buscar por ${SEARCHABLE_COLUMNS.find(c => c.key === searchCriteria)?.name}...`}
-                              value={searchTerm}
-                              onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                              className="w-full bg-primary border border-border-color rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                                type="text"
+                                placeholder={`Buscar por ${SEARCHABLE_COLUMNS.find(c => c.key === searchCriteria)?.name}...`}
+                                value={searchTerm}
+                                onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                className="w-full bg-primary border border-border-color rounded-r-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
                             />
                         </div>
-                         <select
+                        <select
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                             className="w-full sm:w-auto bg-primary border border-border-color rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
@@ -203,7 +204,7 @@ export default function CargasView(): JSX.Element {
                     </div>
                 </div>
             </Card>
-            
+
             <Card>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm border-collapse">
@@ -220,33 +221,34 @@ export default function CargasView(): JSX.Element {
                                 const isExpanded = expandedRows.has(record.id);
 
                                 return (
-                                <React.Fragment key={record.id}>
-                                    <tr className="border-t border-border-color hover:bg-primary/50">
-                                        <td className="text-center border-r border-border-color">
-                                            {record.ticket && (
-                                                <button onClick={() => toggleRowExpansion(record.id)} className="p-2 text-accent">
-                                                    {isExpanded ? ICONS.minus : ICONS.plus}
-                                                </button>
-                                            )}
-                                        </td>
-                                        {columnHeaders.map(col => (
-                                            <td key={col.key} className="p-3 text-text-secondary whitespace-nowrap border-r border-border-color">
-                                                {col.key.toLowerCase().includes('fecha') || col.key.toLowerCase().includes('evento') 
-                                                  ? formatDate((record as any)[col.key])
-                                                  : (record as any)[col.key] ?? 'N/A'}
+                                    <React.Fragment key={record.id}>
+                                        <tr className="border-t border-border-color hover:bg-primary/50">
+                                            <td className="text-center border-r border-border-color">
+                                                {record.ticket && (
+                                                    <button onClick={() => toggleRowExpansion(record.id)} className="p-2 text-accent">
+                                                        {isExpanded ? ICONS.minus : ICONS.plus}
+                                                    </button>
+                                                )}
                                             </td>
-                                        ))}
-                                    </tr>
-                                </React.Fragment>
-                            )})}
+                                            {columnHeaders.map(col => (
+                                                <td key={col.key} className="p-3 text-text-secondary whitespace-nowrap border-r border-border-color">
+                                                    {col.key.toLowerCase().includes('fecha') || col.key.toLowerCase().includes('evento')
+                                                        ? formatDate((record as any)[col.key])
+                                                        : (record as any)[col.key] ?? 'N/A'}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    </React.Fragment>
+                                )
+                            })}
                         </tbody>
                     </table>
                     {filteredData.length === 0 && <p className="p-8 text-center text-text-secondary">No se encontraron registros.</p>}
                 </div>
-                 {totalPages > 1 && (
+                {totalPages > 1 && (
                     <div className="flex flex-col md:flex-row justify-between items-center mt-6 p-4 bg-secondary rounded-lg border-t border-border-color gap-4">
                         <div className="flex items-center gap-2 text-sm text-text-secondary">
-                             <span>Mostrar por página:</span>
+                            <span>Mostrar por página:</span>
                             <select
                                 id="itemsPerPage"
                                 value={itemsPerPage}
@@ -261,28 +263,28 @@ export default function CargasView(): JSX.Element {
                                 | Viendo {paginatedData.length} de {filteredData.length} registros
                             </span>
                         </div>
-    
+
                         <div className="flex items-center gap-2">
-                             <span className="text-sm font-semibold text-text-secondary">
-                                 Página {currentPage} de {totalPages}
-                             </span>
-                             <Button
-                                 onClick={() => setCurrentPage(p => p - 1)}
-                                 disabled={currentPage === 1}
-                                 size="md"
-                                 variant="secondary"
-                             >
-                                 Anterior
-                             </Button>
-                             <Button
-                                 onClick={() => setCurrentPage(p => p + 1)}
-                                 disabled={currentPage === totalPages}
-                                 size="md"
-                                 variant="secondary"
-                             >
-                                 Siguiente
-                             </Button>
-                         </div>
+                            <span className="text-sm font-semibold text-text-secondary">
+                                Página {currentPage} de {totalPages}
+                            </span>
+                            <Button
+                                onClick={() => setCurrentPage(p => p - 1)}
+                                disabled={currentPage === 1}
+                                size="md"
+                                variant="secondary"
+                            >
+                                Anterior
+                            </Button>
+                            <Button
+                                onClick={() => setCurrentPage(p => p + 1)}
+                                disabled={currentPage === totalPages}
+                                size="md"
+                                variant="secondary"
+                            >
+                                Siguiente
+                            </Button>
+                        </div>
                     </div>
                 )}
             </Card>

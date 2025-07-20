@@ -15,6 +15,7 @@ import InlineReportView from '../reports/InlineReportView';
 import Select from '../common/Select';
 import Input from '../common/Input';
 import { CloseSubticketPayload, RequestCloseSubticket } from '../../services/apiTypes';
+import { can } from '@/utils/permissions';
 
 
 interface TicketItemProps {
@@ -65,9 +66,9 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
     const [elapsedTime, setElapsedTime] = useState('');
     const statusMenuRef = useRef<HTMLDivElement>(null);
 
-    const canEdit = currentUser?.permissions.tickets.edit ?? false;
-    const canDelete = currentUser?.permissions.tickets.delete ?? false;
-    const canCreate = currentUser?.permissions.tickets.create ?? false;
+    const canEdit = can("ticket.edit") ?? false;
+    const canDelete = can("ticket.delete") ?? false;
+    const canCreate = can("ticket.create") ?? false;
 
     const ticketSubtickets = subtickets.filter(st => st.ticketId == ticket.id);
 
@@ -159,7 +160,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                     finalEvent: closingData.finalEvent ?? new Date().toISOString(),
                 };
 
-                const success = await closeSubticket(request);
+                const success = await closeSubticket(request, currentUser);
                 return { success, subticketCode: st.code };
             })
         );
@@ -194,7 +195,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
 
             const request: RequestChangeTicketStatus = {
                 ticketId: ticket.id,
-                managerId: "f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa",
+                managerId: "af461b84-1d99-4342-9aab-bccc91bafcf1",
                 status: newStatus
                 // Asumiendo que usas currentUser del context
             };
@@ -273,7 +274,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
 
                 request = {
                     ticketId: ticket.id,
-                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    managerId: 'af461b84-1d99-4342-9aab-bccc91bafcf1',
                     status: TicketStatus.OnHold,
                     reasonForPause: statusForm.reason
                 };
@@ -287,7 +288,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
 
                 request = {
                     ticketId: ticket.id,
-                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    managerId: 'af461b84-1d99-4342-9aab-bccc91bafcf1',
                     status: TicketStatus.InProgress
                 };
                 break;
@@ -295,7 +296,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
             case TicketStatus.Pending:
                 request = {
                     ticketId: ticket.id,
-                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    managerId: 'af461b84-1d99-4342-9aab-bccc91bafcf1',
                     status: TicketStatus.Pending
                 };
                 console.log("estamos en pendiente")
@@ -305,7 +306,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                 // Fallback para cualquier otro estado como Solved, etc.
                 request = {
                     ticketId: ticket.id,
-                    managerId: 'f8c80d9e-9c7b-4eb1-b154-7cd6f8b5b5aa',
+                    managerId: 'af461b84-1d99-4342-9aab-bccc91bafcf1',
                     status: statusChangeTarget
                 };
                 break;
@@ -328,8 +329,6 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
         setStatusChangeTarget(null);
         setStatusForm({});
     };
-
-    console.log(ticket.creationDate + ticket.id)
 
     const getModalTitle = () => {
         const from = ticket.status;

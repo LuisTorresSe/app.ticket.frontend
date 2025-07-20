@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { TICKET_TYPES, REPORTED_BY_OPTIONS, DIAGNOSIS_OPTIONS, NODE_OPTIONS, OLT_OPTIONS } from '../../constants';
+import { TICKET_TYPES, REPORTED_BY_OPTIONS, DIAGNOSIS_OPTIONS, NODE_OPTIONS, OLT_OPTIONS, ASSIGN_TO } from '../../constants';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import Select from '../common/Select';
@@ -11,7 +11,7 @@ interface TicketFormProps {
   managerId: string;
 }
 
-const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished, managerId }) => {
+const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished }) => {
   const { addTicket, updateTicket } = useAppContext();
 
   const [formData, setFormData] = useState({
@@ -22,17 +22,22 @@ const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished, manag
       ? new Date(ticketToEdit.createAtEvent).toISOString().slice(0, 16)
       : new Date().toISOString().slice(0, 16),
     unavailability: ticketToEdit?.unavailability || false,
+    assignTo: ticketToEdit?.assignTo || '',
     nodeAffected: ticketToEdit?.nodeAffected || '',
     oltAffected: ticketToEdit?.oltAffected || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+
+
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.type) newErrors.type = 'El tipo de ticket es requerido.';
     if (!formData.report) newErrors.report = 'El campo "Reportado por" es requerido.';
     if (!formData.diagnosis) newErrors.diagnosis = 'El diagnóstico es requerido.';
+    if (!formData.assignTo) newErrors.assignTo = "Debes de asignar es requerido"
     if (!formData.createAtEvent) newErrors.createAtEvent = 'La fecha de creación es requerida.';
     if (new Date(formData.createAtEvent) > new Date()) newErrors.createAtEvent = 'No puede ser en el futuro.';
     if (!formData.nodeAffected) newErrors.nodeAffected = 'El nodo es requerido.';
@@ -43,24 +48,23 @@ const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished, manag
   };
 
 
-  console.log(formData.createAtEvent)
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
+
       const ticketPayload = {
-        managerId,
         ...formData
       };
 
-      console.log(ticketPayload.createAtEvent + "esto es form");
-
-
       if (ticketToEdit) {
+
+
+
         updateTicket(ticketToEdit.id, ticketPayload);
       } else {
         addTicket(ticketPayload);
       }
+
       onFinished();
     }
   };
@@ -75,6 +79,10 @@ const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished, manag
         <Select label="Reportado Por" name="report" value={formData.report} onChange={(e) => setFormData({ ...formData, report: e.target.value })} error={errors.report}>
           <option value="">Seleccione quién reporta...</option>
           {REPORTED_BY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        </Select>
+        <Select label="Asignado a" name="asignado" value={formData.assignTo} onChange={(e) => setFormData({ ...formData, assignTo: e.target.value })} error={errors.assignTo}>
+          <option value="">Seleccione quién asignamos...</option>
+          {ASSIGN_TO.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </Select>
         <Select label="Diagnóstico" name="diagnosis" value={formData.diagnosis} onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })} error={errors.diagnosis}>
           <option value="">Seleccione diagnóstico...</option>

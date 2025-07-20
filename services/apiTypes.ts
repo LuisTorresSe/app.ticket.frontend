@@ -17,7 +17,7 @@ export interface ApiResponse {
 }
 
 export type RequestCreateTicket = {
-  managerId: number,
+  managerId: String,
   type: TicketType,
   report: string,
   diagnosis: string,
@@ -25,6 +25,10 @@ export type RequestCreateTicket = {
   unavailability: boolean,
   nodeaffected: string,
   oltaffected: string,
+}
+
+export interface RequestUpdateTicket extends RequestCreateTicket {
+  codeTicket: String
 }
 
 

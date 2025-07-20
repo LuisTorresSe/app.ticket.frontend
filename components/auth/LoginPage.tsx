@@ -1,28 +1,24 @@
-import React, { useState } from 'react';
-import { useAppContext } from '../../context/AppContext';
-import Button from '../common/Button';
-import Card from '../common/Card';
-import Input from '../common/Input';
+import React, { useState } from 'react'
+import Button from '../common/Button'
+import Card from '../common/Card'
+import Input from '../common/Input'
+
+import { useAuthStore } from '@/store/authStore'
+import { useAppContext } from '@/context/AppContext'
 
 const LoginPage: React.FC = () => {
-    const { login, loading } = useAppContext();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const loading = useAuthStore((state) => state.loading)
+    const error = useAuthStore((state) => state.error)
+
+    const { login } = useAppContext()
+
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
 
     const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        if (!username || !password) {
-            setError('Usuario y contraseña son requeridos.');
-            return;
-        }
-
-        const success = await login(username.trim(), password.trim());
-        if (!success) {
-            setError('Credenciales incorrectas. Inténtalo de nuevo.');
-        }
-    };
+        e.preventDefault()
+        await login(username, password) // 👉 Este login es del AppContext
+    }
 
     return (
         <div className="flex h-screen w-full items-center justify-center bg-primary p-4">
@@ -31,14 +27,15 @@ const LoginPage: React.FC = () => {
                     <span className="text-5xl font-bold text-accent">Win</span>
                     <p className="text-text-secondary mt-2">Sistema de Gestión de Tickets</p>
                 </div>
+
                 <form onSubmit={handleLogin} className="space-y-4">
                     <Input
                         id="username"
-                        label="Nombre de Usuario"
+                        label="Usuario"
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="ej., Diego"
+                        placeholder="email@ejemplo.com"
                         autoComplete="username"
                     />
                     <Input
@@ -57,7 +54,7 @@ const LoginPage: React.FC = () => {
                         type="submit"
                         className="w-full mt-6"
                         size="lg"
-                        isLoading={loading.login}
+                        isLoading={loading}
                         disabled={!username || !password}
                     >
                         Ingresar
@@ -65,7 +62,7 @@ const LoginPage: React.FC = () => {
                 </form>
             </Card>
         </div>
-    );
-};
+    )
+}
 
-export default LoginPage;
+export default LoginPage

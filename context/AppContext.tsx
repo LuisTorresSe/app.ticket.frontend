@@ -1,8 +1,10 @@
 import React, { createContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
-import { AppState, AppContextType, Ticket, Subticket, ActionLog, View, User, UploadedRecord, UserRole, TicketStatus, EmailStatus, TicketType, SubticketStatus, Theme, Permissions, RequestCloseTicket, ClosedSubticketResponse, RequestChangeTicketStatus } from '../types';
+import { AppState, AppContextType, Ticket, Subticket, ActionLog, View, User, UploadedRecord, UserRole, TicketStatus, EmailStatus, TicketType, SubticketStatus, Theme, Permissions, ClosedSubticketResponse, RequestChangeTicketStatus } from '../types';
 import { CreateTicketPayload, CreateSubticketPayload, CloseSubticketPayload, RequestCloseSubticket, ResponseCloseSubticket } from '../services/apiTypes';
 import * as apiService from '../services/apiService';
 import { USERS, USER_PERMISSIONS } from '../constants';
+import { useAuthStore } from '@/store/authStore';
+import { can } from '@/utils/permissions';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -22,58 +24,127 @@ const getInitialState = (): AppState => ({
     toast: null,
     loading: {
         initialLoad: false,
+        login: false
     },
-    theme: 'dark',
-});
+    theme: 'light'
+})
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [state, setState] = useState<AppState>(getInitialState());
+    const [state, setState] = useState<AppState>(getInitialState())
+    const zustandUser = useAuthStore(state => state.user)
 
-    const dispatch = useCallback((action: Partial<AppState> | ((prevState: AppState) => Partial<AppState>)) => {
-        if (typeof action === 'function') {
-            setState(prevState => ({ ...prevState, ...action(prevState) }));
-        } else {
-            setState(prevState => ({ ...prevState, ...action }));
-        }
-    }, []);
+    const dispatch = useCallback(
+        (action: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) => {
+            setState(prev => ({
+                ...prev,
+                ...(typeof action === 'function' ? action(prev) : action)
+            }))
+        },
+        []
+    )
 
     const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning', duration = 3000) => {
-        dispatch({ toast: { message, type } });
-        setTimeout(() => dispatch({ toast: null }), duration);
-    }, [dispatch]);
+        dispatch({ toast: { message, type } })
+        setTimeout(() => dispatch({ toast: null }), duration)
+    }, [dispatch])
 
-    // Theme loading
+    // ✅ Restaurar estado desde zustand (authStore)
     useEffect(() => {
-        const savedTheme = localStorage.getItem('theme') as Theme | null;
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (zustandUser && !state.isAuthenticated) {
+            dispatch({
+                currentUser: {
+                    id: zustandUser.userId,
+                    name: zustandUser.fullName,
+                    role: zustandUser.roles,
+                    permissions: zustandUser.permissions,
+                },
+                isAuthenticated: true,
+            })
+        }
+    }, [zustandUser, state.isAuthenticated, dispatch])
 
-        let initialTheme: Theme = 'light';
-        if (savedTheme && VALID_THEMES.includes(savedTheme)) {
-            initialTheme = savedTheme;
-        } else if (!savedTheme && prefersDark) {
-            initialTheme = 'dark';
+    // ✅ Restaurar theme del localStorage
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme') as Theme | null
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        const initialTheme: Theme = savedTheme && VALID_THEMES.includes(savedTheme)
+            ? savedTheme
+            : prefersDark ? 'dark' : 'light'
+
+        document.documentElement.classList.remove('dark', 'gamer', 'adult')
+        if (initialTheme !== 'light') document.documentElement.classList.add(initialTheme)
+
+        dispatch({ theme: initialTheme })
+    }, [dispatch])
+
+    // ✅ Cargar data si ya está logueado
+    useEffect(() => {
+        const shouldReloadData =
+            state.isAuthenticated &&
+            state.tickets.length === 0 &&
+            !state.loading.initialLoad
+
+        if (!shouldReloadData) return
+
+        const fetchInitialData = async () => {
+            dispatch(p => ({ ...p, loading: { ...p.loading, initialLoad: true } }))
+
+            try {
+                const [
+                    tickets,
+                    archivedTickets,
+                    subtickets,
+                    uploadedData,
+                    actionLogs,
+                    users,
+                ] = await Promise.all([
+                    apiService.fetchTickets(),
+                    apiService.fetchArchivedTickets(),
+                    apiService.fetchAllSubtickets(),
+                    apiService.fetchUploadedData(),
+                    apiService.fetchActionLogs(),
+                    apiService.fetchUsers(),
+                ])
+
+                dispatch(p => ({
+                    ...p,
+                    tickets,
+                    archivedTickets,
+                    subtickets,
+                    uploadedData,
+                    actionLogs,
+                    users,
+                }))
+            } catch (error) {
+                console.error('Error al recargar datos tras reload', error)
+            } finally {
+                dispatch(p => ({
+                    ...p,
+                    loading: { ...p.loading, initialLoad: false },
+                }))
+            }
         }
 
-        dispatch(prevState => ({ ...prevState, theme: initialTheme }));
+        fetchInitialData()
+    }, [state.isAuthenticated, state.tickets.length, state.loading.initialLoad, dispatch])
 
-        const root = document.documentElement;
-        root.classList.remove('dark', 'gamer', 'adult');
-        if (initialTheme !== 'light') {
-            root.classList.add(initialTheme);
-        }
-    }, [dispatch]);
+
+
 
     const login = useCallback(async (username: string, password: string): Promise<boolean> => {
         dispatch(p => ({ ...p, loading: { ...p.loading, login: true } }));
+
         try {
-            const user = await apiService.login(username, password);
-            // En este punto siempre recibimos un usuario (apiService.login nunca devuelve null)
-            const fallbackUser = user || {
-                id: `user-${Date.now()}`,
-                name: username,
-                role: UserRole.User,
-                permissions: USER_PERMISSIONS,
-            };
+            const auth = useAuthStore.getState();
+            const success = await auth.login(username, password);
+
+            const user = useAuthStore.getState().user;
+
+
+            console.log(user)
+
+            // fallback en caso no haya user (modo offline o error inesperado)
+            const fallbackUser = user ?? null
 
             dispatch(p => ({ ...p, loading: { ...p.loading, initialLoad: true } }));
 
@@ -85,7 +156,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             let users: User[] = [];
 
             try {
-                [tickets, archivedTickets, subtickets, uploadedData, actionLogs, users] = await Promise.all([
+                [
+                    tickets,
+                    archivedTickets,
+                    subtickets,
+                    uploadedData,
+                    actionLogs,
+                    users,
+                ] = await Promise.all([
                     apiService.fetchTickets(),
                     apiService.fetchArchivedTickets(),
                     apiService.fetchAllSubtickets(),
@@ -94,12 +172,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     apiService.fetchUsers(),
                 ]);
             } catch (e) {
-                console.warn('Carga inicial falló, se continuará con datos vacíos.');
+                console.warn('❗ Carga inicial falló, se continuará con datos vacíos.', e);
             }
 
             dispatch({
                 isAuthenticated: true,
-                currentUser: fallbackUser,
+                currentUser: {
+                    id: fallbackUser.userId,
+                    name: fallbackUser.fullName,
+                    role: fallbackUser.roles, // si más adelante es un array, cambia a roles[0]
+                    permissions: fallbackUser?.permissions,
+                },
                 activeView: 'dashboard',
                 tickets,
                 archivedTickets,
@@ -108,23 +191,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 actionLogs,
                 users,
             });
-            showToast(`Bienvenido de nuevo, ${fallbackUser.name}!`, 'success');
+
+            showToast(`Bienvenido de nuevo, ${fallbackUser.fullName}!`, 'success');
             return true;
+
         } catch (error) {
             console.error('Error durante login, se continuará en modo sin datos', error);
+
             const anonUser = {
                 id: `user-${Date.now()}`,
-                name: username,
+                fullName: username,
                 role: UserRole.User,
                 permissions: USER_PERMISSIONS,
             };
+
             dispatch({ isAuthenticated: true, currentUser: anonUser });
             showToast('Sesión iniciada en modo offline.', 'warning');
             return true;
         } finally {
-            dispatch(p => ({ loading: { ...p.loading, login: false, initialLoad: false } }));
+            dispatch(p => ({
+                loading: { ...p.loading, login: false, initialLoad: false },
+            }));
         }
     }, [dispatch, showToast]);
+
+
+
 
     const logout = useCallback(() => {
         dispatch(getInitialState());
@@ -202,10 +294,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
     const addTicket = useCallback(async (ticketData: CreateTicketPayload) => {
-
-        console.log(ticketData.olt + "estamos en el contexto")
-
-        if (!state.currentUser?.permissions.tickets.create) {
+        if (!can("ticket.create")) {
             showToast('No tienes permiso para crear tickets.', 'error');
             return;
         }
@@ -213,7 +302,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const newTicket = await apiService.createTicket(ticketData, state.currentUser);
 
-            
+
             dispatch(prevState => ({ tickets: [...prevState.tickets, newTicket] }));
             await logAction(newTicket.code, `Ticket creado.`);
             showToast(`Ticket ${newTicket.code} creado con éxito`, 'success');
@@ -225,33 +314,71 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [state.currentUser, dispatch, logAction, showToast]);
 
-    const updateTicket = useCallback(async (ticketId: string, updates: Partial<Ticket>) => {
-        if (!state.currentUser?.permissions.tickets.edit) {
-            showToast('No tienes permiso para editar tickets.', 'error');
-            return;
-        }
-        dispatch(p => ({ loading: { ...p.loading, [`savingTicket_${ticketId}`]: true } }));
-        try {
-            const updatedTicket = await apiService.updateTicket(ticketId, updates);
-            dispatch(prevState => ({
-                tickets: prevState.tickets.map(t => t.id === ticketId ? updatedTicket : t)
+    const updateTicket = useCallback(
+        async (ticketId: string, updates: RequestUpdateTicket): Promise<boolean> => {
+            if (!can("ticket.edit")) {
+                showToast('No tienes permiso para editar tickets.', 'error');
+                return false;
+            }
+
+            const ticket = state.tickets.find(t => t.id === ticketId);
+            if (!ticket) {
+                showToast('Ticket no encontrado en memoria.', 'error');
+                return false;
+            }
+
+            const loadingKey = `savingTicket_${ticketId}`;
+            dispatch(prev => ({
+                loading: { ...prev.loading, [loadingKey]: true },
             }));
-            await logAction(updatedTicket.code, `Detalles del ticket actualizados.`);
-            showToast(`Ticket ${updatedTicket.code} actualizado`, 'success');
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Error al actualizar el ticket.";
-            showToast(message, 'error');
-        } finally {
-            dispatch(p => ({ loading: { ...p.loading, [`savingTicket_${ticketId}`]: false } }));
-        }
-    }, [state.currentUser, dispatch, logAction, showToast]);
+
+            try {
+                const updatedTicket = await apiService.updateTicket(ticketId, updates);
+
+                dispatch(prev => ({
+                    tickets: prev.tickets.map(t =>
+                        t.id === updatedTicket.id ? updatedTicket : t
+                    ),
+                }));
+
+                await logAction(updatedTicket.code, `Ticket actualizado.`);
+
+                showToast(`Ticket ${updatedTicket.code} actualizado con éxito.`, 'success');
+
+                // Refrescar tickets y subtickets desde el backend
+                const [refreshedTickets, refreshedSubtickets] = await Promise.all([
+                    apiService.fetchTickets(),
+                    apiService.fetchAllSubtickets(),
+                ]);
+
+                dispatch(prev => ({
+                    tickets: refreshedTickets,
+                    subtickets: refreshedSubtickets,
+                }));
+
+                return true;
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : 'Error al actualizar el ticket.';
+                showToast(message, 'error');
+                return false;
+            } finally {
+                dispatch(prev => ({
+                    loading: { ...prev.loading, [loadingKey]: false },
+                }));
+            }
+        },
+        [state.currentUser, state.tickets, dispatch, logAction, showToast]
+    );
 
 
     const changeTicketStatus = useCallback(
         async (request: RequestChangeTicketStatus): Promise<boolean> => {
             const { ticketId } = request;
 
-            if (!state.currentUser?.permissions?.tickets?.edit) {
+            if (!can("ticket.edit")) {
                 showToast('No tienes permiso para editar tickets.', 'error');
                 return false;
             }
@@ -367,15 +494,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const reopenTicket = useCallback(async (ticketId: string) => {
         const ticket = state.tickets.find(t => t.id === ticketId);
-        if (ticket && state.currentUser?.permissions.tickets.edit) {
+        if (ticket && can("ticket.edit")) {
             await updateTicket(ticketId, { status: TicketStatus.Pending, closingDate: undefined });
         } else {
             showToast('Permiso denegado o ticket no encontrado.', 'error');
         }
-    }, [state.currentUser?.permissions.tickets.edit, state.tickets, showToast, updateTicket]);
+    }, [can("ticket.edit"), state.tickets, showToast, updateTicket]);
 
     const deleteTicket = useCallback(async (ticketId: string) => {
-        if (!state.currentUser?.permissions.tickets.delete) {
+        if (!can("ticket.delete")) {
             showToast('No tienes permiso para archivar tickets.', 'error');
             return;
         }
@@ -402,10 +529,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } finally {
             dispatch(p => ({ loading: { ...p.loading, [`deleting_${ticketId}`]: false } }));
         }
-    }, [state.currentUser?.permissions.tickets.delete, state.tickets, dispatch, logAction, showToast]);
+    }, [can("ticket.delete"), state.tickets, dispatch, logAction, showToast]);
 
     const restoreTicket = useCallback(async (ticketId: string) => {
-        if (!state.currentUser?.permissions.archived.edit) {
+        if (!can("ticket.edit")) {
             showToast('No tienes permiso para restaurar tickets.', 'error');
             return;
         }
@@ -429,10 +556,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } finally {
             dispatch(p => ({ loading: { ...p.loading, [`restoring_${ticketId}`]: false } }));
         }
-    }, [state.currentUser?.permissions.archived.edit, dispatch, logAction, showToast]);
+    }, [can("ticket.edit"), dispatch, logAction, showToast]);
 
-    const addSubticket = useCallback(async (subticketData: CreateSubticketPayload) => {
-        if (!state.currentUser?.permissions.tickets.create) {
+    const addSubticket = useCallback(async (subticketData: CreateSubticketPayload, currentUser: User) => {
+        if (!can("ticket.create")) {
             showToast('No tienes permiso para crear subtickets.', 'error');
             return;
         }
@@ -445,7 +572,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         dispatch(p => ({ loading: { ...p.loading, savingSubticket: true } }));
         try {
             // Crear el subticket
-            const newSubticket = await apiService.createSubticket(subticketData, state.currentUser);
+            const newSubticket = await apiService.createSubticket(subticketData, currentUser);
 
             // Refrescar tanto tickets como subtickets para asegurar sincronización completa
             const [refreshedTickets, refreshedSubtickets] = await Promise.all([
@@ -470,7 +597,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }, [state.tickets, state.currentUser, dispatch, logAction, showToast]);
 
     const updateSubticket = useCallback(async (subticketId: string, updates: Partial<Subticket>) => {
-        if (!state.currentUser?.permissions.tickets.edit) {
+        if (!can("ticket.edit")) {
             showToast('No tienes permiso para editar subtickets.', 'error');
             return;
         }
@@ -528,9 +655,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     const closeSubticket = useCallback(async (
-        requestCloseSubticket: RequestCloseSubticket
+        requestCloseSubticket: RequestCloseSubticket, currentUser: User | null
     ): Promise<boolean> => {
-        if (!state.currentUser?.permissions.tickets.edit) {
+        if (!can("ticket.edit")) {
             showToast('No tienes permiso para cerrar subtickets.', 'error');
             return false;
         }
@@ -549,10 +676,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const request: RequestCloseSubticket = {
                 ...requestCloseSubticket,
-                managerId: state.currentUser.id,
-                eventResponsible: state.currentUser.fullName ?? '',
+                managerId: currentUser.id,
+                eventResponsible: currentUser?.name ?? '',
                 comment: requestCloseSubticket.comment ?? null,
             };
+            console.log(request.managerId + "esto es mi request")
 
             const result = await apiService.closeSubticket(request);
 
@@ -593,7 +721,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }));
         }
     }, [
-        state.currentUser?.permissions.tickets.edit,
+        can("ticket.edit"),
         state.currentUser?.id,
         state.currentUser?.fullName,
         dispatch,
@@ -625,7 +753,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } finally {
             dispatch(p => ({ loading: { ...p.loading, [`reopeningSubticket_${subticketId}`]: false } }));
         }
-    }, [state.subtickets, state.tickets, state.currentUser?.permissions.tickets.edit, dispatch, logAction, showToast]);
+    }, [state.subtickets, state.tickets, can("ticket.edit"), dispatch, logAction, showToast]);
 
     // Cargar (o recargar) tickets y subtickets justo después de autenticarse.
     useEffect(() => {

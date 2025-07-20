@@ -39,12 +39,10 @@ export interface Permissions {
 }
 
 export interface User {
-  fullName: string;
-  id: string;
   name: string;
-  role: UserRole;
-  password?: string; // Should be handled securely on a real backend
-  permissions: Permissions;
+  id: string;
+  role: string;
+  permissions: string[];
 }
 
 export enum TicketType {
@@ -179,47 +177,47 @@ export interface BackendSubticket {
 // -----------------------------------------------------------------------------------------------------------
 
 export interface Client {
-    clientId: number;
-    statusAccount: string;
-    documentCi: string;
-    serialNumber: string;
-    orderCode: string;
-    portGpon: string;
-    descriptionDepartament: string | null;
-    descriptionDistrict: string;
-    descriptionBox: string;
-    codeBox: string;
-    contrata: string;
+  clientId: number;
+  statusAccount: string;
+  documentCi: string;
+  serialNumber: string;
+  orderCode: string;
+  portGpon: string;
+  descriptionDepartament: string | null;
+  descriptionDistrict: string;
+  descriptionBox: string;
+  codeBox: string;
+  contrata: string;
 }
 
 export interface ServerDown {
-    serverdownId: number;
-    subticketId: number;
-    client: Client;
+  serverdownId: number;
+  subticketId: number;
+  client: Client;
 }
 
 export interface BackendSubticket {
-    subticketId: number;
-    subticketCode: string;
-    createManagerAt: BackendManager;
-    closeManagerAt: BackendManager | null;
-    createEventAt: string;
-    closeEventAt: string | null;
-    dateReportPext: string;
-    dateStopLabores: string | null;
-    dateStartLabores: string | null;
-    card: number;
-    port: number;
-    ctoAffected: string | null;
-    city: string | null;
-    causeProblem: string | null;
-    countClient: number | null;
-    badPraxis: boolean | null;
-    solutions: string | null;
-    statusSubticket: string;
-    commentary: string | null;
-    responsable: string | null;
-    serverdowns: ServerDown[];
+  subticketId: number;
+  subticketCode: string;
+  createManagerAt: BackendManager;
+  closeManagerAt: BackendManager | null;
+  createEventAt: string;
+  closeEventAt: string | null;
+  dateReportPext: string;
+  dateStopLabores: string | null;
+  dateStartLabores: string | null;
+  card: number;
+  port: number;
+  ctoAffected: string | null;
+  city: string | null;
+  causeProblem: string | null;
+  countClient: number | null;
+  badPraxis: boolean | null;
+  solutions: string | null;
+  statusSubticket: string;
+  commentary: string | null;
+  responsable: string | null;
+  serverdowns: ServerDown[];
 }
 
 export interface Subticket {
@@ -331,27 +329,27 @@ export interface AppContextType extends AppState {
   showToast: (message: string, type: 'success' | 'error' | 'warning', duration?: number) => void;
   addTicket: (ticketData: Omit<Ticket, 'id' | 'code' | 'advisor' | 'status' | 'emailStatus' | 'subticketIds' | 'pauseHistory' | 'executionHistory'>) => void;
   updateTicket: (ticketId: number, updates: Partial<Ticket>) => void;
-  closeTicket: (request:RequestCloseTicket) => Promise<boolean>;
+  closeTicket: (request: RequestCloseTicket) => Promise<boolean>;
   deleteTicket: (ticketId: string) => void;
   reopenTicket: (ticketId: string) => void;
   restoreTicket: (ticketId: string) => void;
-  addSubticket: (subticketData: Omit<Subticket, 'id' | 'code' | 'creator' | 'status'>) => void;
+  addSubticket: (subticketData: Omit<Subticket, 'id' | 'code' | 'creator' | 'status'>, current: User | null) => void;
   updateSubticket: (subticketId: string, updates: Partial<Subticket>) => void;
-  closeSubticket: (request: RequestCloseSubticket)=> Promise<boolean>;
+  closeSubticket: (request: RequestCloseSubticket, currentUser: User | null) => Promise<boolean>;
   reopenSubticket: (subticketId: string) => void;
   logAction: (ticketCode: string, action: string) => void;
   addUser: (userData: Omit<User, 'id'>) => Promise<void>;
   updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
   deleteUser: (userId: string) => Promise<void>;
-  changeTicketStatus: (request:RequestChangeTicketStatus)=>Promise<boolean>
+  changeTicketStatus: (request: RequestChangeTicketStatus) => Promise<boolean>
 }
 
 
-export interface RequestChangeTicketStatus{
-  ticketId:number, 
-  managerId:string,
-  status:string
-  reasonForPause?:string 
+export interface RequestChangeTicketStatus {
+  ticketId: number,
+  managerId: string,
+  status: string
+  reasonForPause?: string
 }
 
 export type TicketStatusChangeResponse = {
@@ -371,21 +369,23 @@ export interface RequestCreateTicket {
   oltAffected: string;
 }
 
+
+
 export interface RequestCreateSubticket {
-  
-    createManagerId: string;
-    ticketId: number;
-    eventStartDate:string;
-    reportedToPextDate: string;
-    card: number;
-    port: number;
-    city:string;
-    cto: string;
-    commentary: string;
-    serverDown?: RequestCreateServerDown[];
+
+  createManagerId: string;
+  ticketId: number;
+  eventStartDate: string;
+  reportedToPextDate: string;
+  card: number;
+  port: number;
+  city: string;
+  cto: string;
+  commentary: string;
+  serverDown?: RequestCreateServerDown[];
 }
 
 export interface RequestCreateServerDown {
-    subticketId: number;
-    clienteId: number;
+  subticketId: number;
+  clienteId: number;
 }

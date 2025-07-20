@@ -3,13 +3,15 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useAppContext } from '../../context/AppContext';
 import { TicketType, TicketStatus, EmailStatus, UserRole, Ticket, Subticket } from '../../types';
-import KpiCard from './KpiCard';
+
 import EvolutionChart from './EvolutionChart';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import { ICONS } from '../../constants';
 import Modal from '../common/Modal';
 import DashboardConfigModal from './DashboardConfigModal';
+import { useAuthStore } from '@/store/authStore';
+import { can } from '@/utils/permissions';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -349,13 +351,16 @@ const LOCAL_STORAGE_KEY = 'dashboardLayout_v4';
 
 const Dashboard: React.FC = () => {
     const { currentUser } = useAppContext();
+
+    const { user } = useAuthStore()
+
     const [isConfigModalOpen, setConfigModalOpen] = useState(false);
     const [dashboardConfig, setDashboardConfig] = useState<LayoutItem[]>([]);
 
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
 
-    const canConfigure = currentUser?.permissions.dashboard.configure ?? false;
+    const canConfigure = can("dashboard.configure") ?? false;
 
     useEffect(() => {
         const savedLayout = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -453,7 +458,7 @@ const Dashboard: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
-                <h2 className="text-3xl font-bold">¡Bienvenido de nuevo, {currentUser.name}!</h2>
+                <h2 className="text-3xl font-bold">¡Bienvenido de nuevo, {user?.fullName}!</h2>
                 {canConfigure && (
                     <Button onClick={() => setConfigModalOpen(true)} size="sm" variant="secondary">
                         <div className="flex items-center gap-2">{ICONS.settings} Configurar Panel</div>

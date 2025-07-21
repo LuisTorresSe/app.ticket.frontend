@@ -134,20 +134,34 @@ export const deleteUser = async (userId: string): Promise<ApiResponse> => {
 
 // TICKETS
 export const fetchTickets = async (): Promise<Ticket[]> => {
-    const data = await apiFetch<any>('/ticket');
-    //console.log('Respuesta de la API /ticket:', data);
-    let backendTickets: BackendTicket[] = [];
+    try {
+        const data = await apiFetch<any>('/ticket');
+        console.log('Respuesta de la API /ticket:', data);
 
+        const backendTickets: BackendTicket[] = normalizeTicketsResponse(data);
+        return backendTickets.map(transformTicketFromBackend);
+    } catch (error) {
+        console.error('Error al obtener tickets:', error);
+        return [];
+    }
+};
+
+const normalizeTicketsResponse = (data: any): BackendTicket[] => {
     if (Array.isArray(data)) {
-        backendTickets = data as BackendTicket[];
-    } else if (data && Array.isArray(data.tickets)) {
-        backendTickets = data.tickets as BackendTicket[];
-    } else if (data && data.ticket) {
-        backendTickets = [data.ticket as BackendTicket];
+        return data as BackendTicket[];
     }
 
-    return backendTickets.map(transformTicketFromBackend);
+    if (data?.tickets && Array.isArray(data.tickets)) {
+        return data.tickets as BackendTicket[];
+    }
+
+    if (data?.ticket) {
+        return [data.ticket as BackendTicket];
+    }
+
+    return [];
 };
+
 
 export const fetchArchivedTickets = async (): Promise<Ticket[]> => {
     // return apiFetch<Ticket[]>('/tickets/archived');
@@ -157,11 +171,12 @@ export const fetchArchivedTickets = async (): Promise<Ticket[]> => {
 
 export const createTicket = async (request: RequestCreateTicket, currentUser: User): Promise<Ticket> => {
     const backendPayload: RequestCreateTicket = {
-        managerId: "af461b84-1d99-4342-9aab-bccc91bafcf1", // ID fijo como solicitado
+        managerId: currentUser.id, // ID fijo como solicitado
         type: request.type,
         report: request.report,
         diagnosis: request.diagnosis,
         createAtEvent: request.createAtEvent,
+        assignTo: request.assignTo,
         unavailability: request.unavailability,
         nodeAffected: request.nodeAffected,
         oltAffected: request.oltAffected
@@ -183,13 +198,13 @@ export const createTicket = async (request: RequestCreateTicket, currentUser: Us
     }
 };
 
-export const updateTicket = async (ticketId: string, payload: UpdateTicketPayload): Promise<Ticket> => {
+export const updateTicket = async (ticketId: string, payload: UpdateTicketPayload, currentId: string): Promise<Ticket> => {
 
     console
 
     const response = await apiFetch<BackendTicket>(`/ticket/updated/${ticketId}`, {
         method: 'PUT', // o 'PATCH' si tu backend lo prefiere para updates parciales
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, managerId: currentId }),
     });
 
     return transformTicketFromBackend(response);
@@ -259,7 +274,7 @@ export const createSubticket = async (payload: CreateSubticketPayload, currentUs
         serverDown: [] // Por ahora no enviamos server downs
     };
 
-    console.log(backendPayload.ticketId + "esto es el payload")
+
 
     try {
         //   //console.log('Enviando subticket al backend:', backendPayload);
@@ -332,7 +347,7 @@ export const changeTicketStatus = async (
             method: 'PUT',
             body: JSON.stringify({
                 ...request,
-                managerId: request.managerId ?? "af461b84-1d99-4342-9aab-bccc91bafcf1" // fallback si no se pasa
+                managerId: request.managerId // fallback si no se pasa
             }),
         });
 
@@ -459,6 +474,7 @@ function transformTicketFromBackend(bt: BackendTicket): Ticket {
         initialDiagnosis: bt.diagnosis,
         creationDate: bt.createdAt ?? bt.creationDate ?? bt.createdAt ?? new Date().toISOString(),
         serviceUnavailable: bt.unavailability,
+        assignTo: bt.assignTo,
         node: bt.nodeAffected ?? bt.nodeAffected ?? '',
         olt: bt.oltAffected ?? '',
         advisor: bt.managerAtAperture?.managerName || bt.managerAtAperture?.name || 'Desconocido',

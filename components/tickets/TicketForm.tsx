@@ -12,7 +12,7 @@ interface TicketFormProps {
 }
 
 const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished }) => {
-  const { addTicket, updateTicket } = useAppContext();
+  const { addTicket, updateTicket, currentUser } = useAppContext();
 
   const [formData, setFormData] = useState({
     type: ticketToEdit?.type || '',
@@ -60,7 +60,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished }) => 
 
 
 
-        updateTicket(ticketToEdit.id, ticketPayload);
+        updateTicket(ticketToEdit.id, ticketPayload, currentUser);
       } else {
         addTicket(ticketPayload);
       }

@@ -68,6 +68,12 @@ export enum SubticketStatus {
   Closed = 'SOLUCIONADO',
 }
 
+export enum AssignTo {
+  pexLima = "PEXT Lima",
+  pexProvincia = "PEXT Provincia",
+  calidadOperativa = "Calidad operativa"
+}
+
 export interface PauseInfo {
   startTime: string;
   endTime?: string;
@@ -92,6 +98,7 @@ export interface BackendTicket {
   type: any;
   report: string;
   creationDate: string;
+  assignTo: string,
   status: any;
   ticketId: number;
   codeTicket: string;
@@ -119,9 +126,10 @@ export interface Ticket {
   initialDiagnosis: string;
   creationDate: string;
   serviceUnavailable: boolean;
+  assignTo: string;
   node: string;
   olt: string;
-  advisor: string;
+  managerApertureAt: string;
   emailStatus: EmailStatus;
   status: TicketStatus;
   closingDate?: string;
@@ -328,7 +336,7 @@ export interface AppContextType extends AppState {
   logout: () => void;
   showToast: (message: string, type: 'success' | 'error' | 'warning', duration?: number) => void;
   addTicket: (ticketData: Omit<Ticket, 'id' | 'code' | 'advisor' | 'status' | 'emailStatus' | 'subticketIds' | 'pauseHistory' | 'executionHistory'>) => void;
-  updateTicket: (ticketId: number, updates: Partial<Ticket>) => void;
+  updateTicket: (ticketId: number, updates: Partial<Ticket>, currentUser: User | null) => void;
   closeTicket: (request: RequestCloseTicket) => Promise<boolean>;
   deleteTicket: (ticketId: string) => void;
   reopenTicket: (ticketId: string) => void;
@@ -363,6 +371,7 @@ export interface RequestCreateTicket {
   type: string;
   report: string;
   diagnosis: string;
+  assignTo: string;
   createAtEvent: Date;
   unavailability: boolean;
   nodeAffected: string;

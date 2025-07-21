@@ -300,6 +300,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
         dispatch(p => ({ loading: { ...p.loading, savingTicket: true } }));
         try {
+
+            console.log(ticketData.assignTo)
+
             const newTicket = await apiService.createTicket(ticketData, state.currentUser);
 
 
@@ -315,7 +318,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }, [state.currentUser, dispatch, logAction, showToast]);
 
     const updateTicket = useCallback(
-        async (ticketId: string, updates: RequestUpdateTicket): Promise<boolean> => {
+        async (ticketId: string, updates: RequestUpdateTicket, currentUser: User | null): Promise<boolean> => {
             if (!can("ticket.edit")) {
                 showToast('No tienes permiso para editar tickets.', 'error');
                 return false;
@@ -333,7 +336,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }));
 
             try {
-                const updatedTicket = await apiService.updateTicket(ticketId, updates);
+                const updatedTicket = await apiService.updateTicket(ticketId, updates, currentUser.id);
 
                 dispatch(prev => ({
                     tickets: prev.tickets.map(t =>

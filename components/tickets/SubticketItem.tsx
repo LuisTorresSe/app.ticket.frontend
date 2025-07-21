@@ -25,7 +25,7 @@ const SubticketStatusBadge: React.FC<{ status: SubticketStatus }> = ({ status })
 
 // This is the key change. A very compact cell.
 const DetailCell: React.FC<{ label: string; value?: React.ReactNode; className?: string, title?: string }> = ({ label, value, className = '', title }) => (
-    <div className={`bg-primary p-1.5 rounded-md border border-border-color text-xs whitespace-nowrap overflow-hidden text-ellipsis ${className}`} title={title || (typeof value === 'string' ? value : undefined)}>
+    <div className={`bg-primary p-1.5 w-[200px] rounded-md border border-border-color  text-xs whitespace-nowrap overflow-hidden text-ellipsis ${className}`} title={title || (typeof value === 'string' ? value : undefined)}>
         <span className="text-text-secondary mr-1.5">{label}:</span>
         <span className="font-semibold text-text-primary">{value || 'N/A'}</span>
     </div>
@@ -138,7 +138,7 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
                     {/* Creation Details */}
                     <div>
                         <h4 className="font-semibold text-xs mb-1.5 text-text-secondary uppercase tracking-wider">Creación</h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5">
+                        <div className="flex flex-wrap gap-x-10 gap-y-5">
 
 
                             <DetailCell label="CTO" value={subticket.cto} title={`CTO: ${subticket.cto}`} />
@@ -160,7 +160,7 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
                     {subticket.status === SubticketStatus.Closed ? (
                         <div>
                             <h4 className="font-semibold text-xs mb-1.5 text-text-secondary uppercase tracking-wider">Cierre</h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1.5">
+                            <div className="flex flex-wrap gap-x-10 gap-y-5">
                                 <DetailCell label="Fin" value={formatDate(subticket.eventEndDate)} />
                                 <DetailCell label="Asesor" value={subtickets.find(st => st.id === subticket.id)?.closingAdvisor || '—'}
                                 />

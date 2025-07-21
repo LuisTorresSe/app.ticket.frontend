@@ -5,7 +5,7 @@ import Button from '../common/Button';
 import { ICONS } from '../../constants';
 import TicketForm from './TicketForm';
 import Modal from '../common/Modal';
-import { Ticket, TicketStatus, TicketType } from '../../types';
+import { AssignTo, Ticket, TicketStatus, TicketType } from '../../types';
 import Card from '../common/Card';
 import { exportToExcel } from '../../lib/xlsx';
 import { formatDate } from '../../lib/utils';
@@ -21,14 +21,18 @@ export default function TicketList(): JSX.Element {
         type: string;
         status: TicketStatus[];
         advisor: string;
+        assignTo: AssignTo[];
         age: 'all' | 'last24h' | 'older';
     }>({
         code: '',
         type: '',
         status: Object.values(TicketStatus),
         advisor: '',
+        assignTo: Object.values(AssignTo),
         age: 'all',
     });
+
+    console.log(filters)
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -46,13 +50,23 @@ export default function TicketList(): JSX.Element {
         setCurrentPage(1);
     };
 
+    const handleAssignToFilterChange = (selectedAssign: string[]) => {
+        setFilters(prev => ({ ...prev, assignTo: selectedAssign as AssignTo[] }))
+        setCurrentPage(1)
+    }
+
     const filteredTickets = useMemo(() => {
         const now = new Date().getTime();
         const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
 
+        console.log(tickets)
+
+
         return tickets.filter((ticket: Ticket) => {
             const statusMatch = filters.status.length === 0 || filters.status.includes(ticket.status);
-            
+
+            const assignToMatch = filters.assignTo.length === 0 || filters.assignTo.includes(ticket.assignTo);
+
             let ageMatch = true;
             if (filters.age !== 'all' && ticket.status !== TicketStatus.Solved) {
                 const ticketCreationTime = new Date(ticket.creationDate).getTime();
@@ -68,10 +82,12 @@ export default function TicketList(): JSX.Element {
                 (filters.type === '' || ticket.type === filters.type) &&
                 statusMatch &&
                 (filters.advisor === '' || ticket.advisor.toLowerCase().includes(filters.advisor.toLowerCase())) &&
+                assignToMatch &&
                 ageMatch
             );
         });
     }, [tickets, filters]);
+
 
     const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
 
@@ -99,7 +115,7 @@ export default function TicketList(): JSX.Element {
             'Subtickets': t.subticketIds.length,
             'Estado Correo': t.emailStatus,
         }));
-        exportToExcel(dataToExport, `tickets_filtrados_${new Date().toISOString().slice(0,10)}`);
+        exportToExcel(dataToExport, `tickets_filtrados_${new Date().toISOString().slice(0, 10)}`);
         logAction('N/A', 'Exportó la lista de tickets a Excel.');
     };
 
@@ -131,12 +147,21 @@ export default function TicketList(): JSX.Element {
                             {Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
-                    <MultiSelectDropdown 
+                    <MultiSelectDropdown
                         label="Estado"
                         options={Object.values(TicketStatus)}
                         selectedOptions={filters.status}
                         onChange={handleStatusFilterChange}
                     />
+
+                    <MultiSelectDropdown
+                        label="Asignado"
+                        options={Object.values(AssignTo)} // Esto debe ser array de strings: ["admin", "user", ...]
+                        selectedOptions={filters.assignTo}
+                        onChange={handleAssignToFilterChange}
+                    />
+
+
                     <div>
                         <label className="block text-sm font-medium text-text-secondary mb-1">Asesor</label>
                         <input name="advisor" value={filters.advisor} onChange={handleFilterChange} placeholder="Filtrar por Asesor..." className="w-full bg-primary border border-border-color rounded-md px-3 py-2" />
@@ -176,33 +201,33 @@ export default function TicketList(): JSX.Element {
                             <option value={25}>25</option>
                             <option value={50}>50</option>
                         </select>
-                         <span className="hidden sm:inline">
+                        <span className="hidden sm:inline">
                             | Viendo {paginatedTickets.length} de {filteredTickets.length} tickets
                         </span>
                     </div>
 
                     {totalPages > 1 && (
-                         <div className="flex items-center gap-2">
-                             <span className="text-sm font-semibold text-text-secondary">
-                                 Página {currentPage} de {totalPages}
-                             </span>
-                             <Button
-                                 onClick={() => setCurrentPage(p => p - 1)}
-                                 disabled={currentPage === 1}
-                                 size="md"
-                                 variant="secondary"
-                             >
-                                 Anterior
-                             </Button>
-                             <Button
-                                 onClick={() => setCurrentPage(p => p + 1)}
-                                 disabled={currentPage === totalPages}
-                                 size="md"
-                                 variant="secondary"
-                             >
-                                 Siguiente
-                             </Button>
-                         </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-text-secondary">
+                                Página {currentPage} de {totalPages}
+                            </span>
+                            <Button
+                                onClick={() => setCurrentPage(p => p - 1)}
+                                disabled={currentPage === 1}
+                                size="md"
+                                variant="secondary"
+                            >
+                                Anterior
+                            </Button>
+                            <Button
+                                onClick={() => setCurrentPage(p => p + 1)}
+                                disabled={currentPage === totalPages}
+                                size="md"
+                                variant="secondary"
+                            >
+                                Siguiente
+                            </Button>
+                        </div>
                     )}
                 </div>
             )}

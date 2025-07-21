@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useAppContext } from '../../context/AppContext';
-import { TicketType, TicketStatus, EmailStatus, UserRole, Ticket, Subticket } from '../../types';
+import { TicketType, TicketStatus, EmailStatus } from '../../types';
 
 import EvolutionChart from './EvolutionChart';
 import Card from '../common/Card';
@@ -12,6 +11,7 @@ import Modal from '../common/Modal';
 import DashboardConfigModal from './DashboardConfigModal';
 import { useAuthStore } from '@/store/authStore';
 import { can } from '@/utils/permissions';
+import TicketStatsChart from './TicketStatsChar';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -140,7 +140,6 @@ const AdvisorWidget = () => {
         </Card>
     );
 }
-
 
 const CityWidget = () => {
     const { subtickets } = useAppContext();
@@ -346,11 +345,10 @@ const ALL_WIDGETS: WidgetConfig[] = [
     { id: 'byEmail', title: 'Estado del Correo', colSpanClass: 'col-span-12 md:col-span-6' },
 ];
 
-
 const LOCAL_STORAGE_KEY = 'dashboardLayout_v4';
 
 const Dashboard: React.FC = () => {
-    const { currentUser } = useAppContext();
+    const { currentUser, tickets } = useAppContext();
 
     const { user } = useAuthStore()
 
@@ -465,6 +463,7 @@ const Dashboard: React.FC = () => {
                     </Button>
                 )}
             </div>
+            <TicketStatsChart tickets={tickets} />
 
             {renderWidgets()}
 

@@ -7,6 +7,7 @@ import Button from '../common/Button';
 import { ICONS } from '../../constants';
 import Modal from '../common/Modal';
 import UserFormModal from './UserFormModal';
+import { can } from '@/utils/permissions';
 
 const UserManagementView: React.FC = () => {
     const { users, currentUser, deleteUser } = useAppContext();
@@ -14,9 +15,9 @@ const UserManagementView: React.FC = () => {
     const [userToEdit, setUserToEdit] = useState<User | undefined>(undefined);
     const [filter, setFilter] = useState('');
 
-    const canCreate = currentUser?.permissions.userManagement.create ?? false;
-    const canEdit = currentUser?.permissions.userManagement.edit ?? false;
-    const canDelete = currentUser?.permissions.userManagement.delete ?? false;
+    const canCreate = can("user.create") ?? false;
+    const canEdit = can("user.edit") ?? false;
+    const canDelete = can("user.delete") ?? false;
 
     const filteredUsers = useMemo(() => {
         return users.filter(user =>
@@ -47,13 +48,13 @@ const UserManagementView: React.FC = () => {
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <h2 className="text-2xl font-bold">Gestión de Usuarios ({users.length})</h2>
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                         <input 
+                        <input
                             type="text"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
                             placeholder="Filtrar por nombre o rol..."
                             className="w-full md:w-64 bg-primary border border-border-color rounded-md px-3 py-2"
-                         />
+                        />
                         {canCreate && (
                             <Button onClick={handleAddUser} size="md">
                                 <span className="mr-2">{ICONS.plus}</span>
@@ -97,21 +98,21 @@ const UserManagementView: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
-                     {filteredUsers.length === 0 && (
+                    {filteredUsers.length === 0 && (
                         <p className="p-8 text-center text-text-secondary">No se encontraron usuarios.</p>
-                     )}
+                    )}
                 </div>
             </Card>
-            
+
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setModalOpen(false)}
                 title={userToEdit ? 'Editar Usuario' : 'Añadir Nuevo Usuario'}
                 size="xl"
             >
-                <UserFormModal 
-                    userToEdit={userToEdit} 
-                    onFinished={() => setModalOpen(false)} 
+                <UserFormModal
+                    userToEdit={userToEdit}
+                    onFinished={() => setModalOpen(false)}
                 />
             </Modal>
         </div>

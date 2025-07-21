@@ -6,22 +6,23 @@ import Card from '../common/Card';
 import Button from '../common/Button';
 import { formatDate } from '../../lib/utils';
 import { ICONS } from '../../constants';
+import { can } from '@/utils/permissions';
 
 const ArchivedView: React.FC = () => {
     const { currentUser, archivedTickets, restoreTicket } = useAppContext();
     const [filter, setFilter] = useState('');
 
-    const canRestore = currentUser?.permissions.archived.edit ?? false;
+    const canRestore = can("archived.edit") ?? false;
 
     const filteredArchivedTickets = useMemo(() => {
-        return archivedTickets.filter(ticket => 
+        return archivedTickets.filter(ticket =>
             ticket.code.toLowerCase().includes(filter.toLowerCase()) ||
             ticket.node.toLowerCase().includes(filter.toLowerCase()) ||
             ticket.advisor.toLowerCase().includes(filter.toLowerCase())
         );
     }, [archivedTickets, filter]);
 
-    if (!currentUser?.permissions.archived.view) {
+    if (!can("archived.view")) {
         return (
             <Card className="p-8 text-center">
                 <h2 className="text-2xl font-bold text-danger">Acceso Denegado</h2>
@@ -29,19 +30,19 @@ const ArchivedView: React.FC = () => {
             </Card>
         );
     }
-    
+
     return (
         <div>
             <Card className="p-4 mb-6">
                 <h2 className="text-2xl font-bold">Tickets Archivados ({archivedTickets.length})</h2>
                 <div className="mt-4">
-                     <input 
+                    <input
                         type="text"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                         placeholder="Filtrar por código, nodo, o asesor..."
                         className="w-full md:w-1/2 bg-primary border border-border-color rounded-md px-3 py-2"
-                     />
+                    />
                 </div>
             </Card>
             <Card>
@@ -78,9 +79,9 @@ const ArchivedView: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-                 {filteredArchivedTickets.length === 0 && (
+                {filteredArchivedTickets.length === 0 && (
                     <p className="p-8 text-center text-text-secondary">No se encontraron tickets archivados.</p>
-                 )}
+                )}
             </Card>
         </div>
     );

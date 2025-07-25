@@ -29,7 +29,6 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
         olt: ticket.olt
     });
 
-    console.log(formData + "esto es add subticket")
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -80,7 +79,8 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
 
             if (isEditMode && subticketToEdit) {
                 const { ticketId, ...updateData } = dataPayload;
-                updateSubticket(subticketToEdit.id, updateData);
+
+                updateSubticket(ticket.id, subticketToEdit.id, updateData, currentUser);
             } else {
                 addSubticket(dataPayload, currentUser);
             }
@@ -168,7 +168,7 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
                             label="Fecha de Reporte a PEXT"
                             type="datetime-local"
                             name="reportedToPextDate"
-                            value={formData.reportedToPextDate}
+                            value={formData.eventStartDate}
                             onChange={(e) => setFormData({ ...formData, reportedToPextDate: e.target.value })}
                             error={errors.reportedToPextDate}
                         />

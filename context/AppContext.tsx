@@ -1,6 +1,6 @@
 import React, { createContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import { AppState, AppContextType, Ticket, Subticket, ActionLog, View, User, UploadedRecord, UserRole, TicketStatus, EmailStatus, TicketType, SubticketStatus, Theme, Permissions, ClosedSubticketResponse, RequestChangeTicketStatus } from '../types';
-import { CreateTicketPayload, CreateSubticketPayload, CloseSubticketPayload, RequestCloseSubticket, ResponseCloseSubticket } from '../services/apiTypes';
+import { CreateTicketPayload, CreateSubticketPayload, CloseSubticketPayload, RequestCloseSubticket, ResponseCloseSubticket, RequestUpdateTicket } from '../services/apiTypes';
 import * as apiService from '../services/apiService';
 import { USERS, USER_PERMISSIONS } from '../constants';
 import { useAuthStore } from '@/store/authStore';
@@ -317,64 +317,107 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [state.currentUser, dispatch, logAction, showToast]);
 
-    const updateTicket = useCallback(
-        async (ticketId: string, updates: RequestUpdateTicket, currentUser: User | null): Promise<boolean> => {
-            if (!can("ticket.edit")) {
-                showToast('No tienes permiso para editar tickets.', 'error');
-                return false;
-            }
+    const updateTicket = useCallback(async (ticketId: string, updates: RequestUpdateTicket, currentUser: User | null): Promise<boolean> => {
+        if (!can("ticket.edit")) {
+            showToast('No tienes permiso para editar tickets.', 'error');
+            return false;
+        }
 
-            const ticket = state.tickets.find(t => t.id === ticketId);
-            if (!ticket) {
-                showToast('Ticket no encontrado en memoria.', 'error');
-                return false;
-            }
+        const ticket = state.tickets.find(t => t.id === ticketId);
+        if (!ticket) {
+            showToast('Ticket no encontrado en memoria.', 'error');
+            return false;
+        }
 
-            const loadingKey = `savingTicket_${ticketId}`;
+        const loadingKey = `savingTicket_${ticketId}`;
+        dispatch(prev => ({
+            loading: { ...prev.loading, [loadingKey]: true },
+        }));
+
+        try {
+            const updatedTicket = await apiService.updateTicket(ticketId, updates, currentUser.id);
+
             dispatch(prev => ({
-                loading: { ...prev.loading, [loadingKey]: true },
+                tickets: prev.tickets.map(t =>
+                    t.id === updatedTicket.id ? updatedTicket : t
+                ),
             }));
 
-            try {
-                const updatedTicket = await apiService.updateTicket(ticketId, updates, currentUser.id);
+            await logAction(updatedTicket.code, `Ticket actualizado.`);
 
-                dispatch(prev => ({
-                    tickets: prev.tickets.map(t =>
-                        t.id === updatedTicket.id ? updatedTicket : t
-                    ),
-                }));
+            showToast(`Ticket ${updatedTicket.code} actualizado con éxito.`, 'success');
 
-                await logAction(updatedTicket.code, `Ticket actualizado.`);
+            // Refrescar tickets y subtickets desde el backend
+            const [refreshedTickets, refreshedSubtickets] = await Promise.all([
+                apiService.fetchTickets(),
+                apiService.fetchAllSubtickets(),
+            ]);
 
-                showToast(`Ticket ${updatedTicket.code} actualizado con éxito.`, 'success');
+            dispatch(prev => ({
+                tickets: refreshedTickets,
+                subtickets: refreshedSubtickets,
+            }));
 
-                // Refrescar tickets y subtickets desde el backend
-                const [refreshedTickets, refreshedSubtickets] = await Promise.all([
-                    apiService.fetchTickets(),
-                    apiService.fetchAllSubtickets(),
-                ]);
-
-                dispatch(prev => ({
-                    tickets: refreshedTickets,
-                    subtickets: refreshedSubtickets,
-                }));
-
-                return true;
-            } catch (error) {
-                const message =
-                    error instanceof Error
-                        ? error.message
-                        : 'Error al actualizar el ticket.';
-                showToast(message, 'error');
-                return false;
-            } finally {
-                dispatch(prev => ({
-                    loading: { ...prev.loading, [loadingKey]: false },
-                }));
-            }
-        },
+            return true;
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Error al actualizar el ticket.';
+            showToast(message, 'error');
+            return false;
+        } finally {
+            dispatch(prev => ({
+                loading: { ...prev.loading, [loadingKey]: false },
+            }));
+        }
+    },
         [state.currentUser, state.tickets, dispatch, logAction, showToast]
     );
+
+    const updateSubticket = useCallback(async (ticketId: number, subticketId: number, updates: Partial<Subticket>, currentUser: User) => {
+        if (!can("ticket.edit")) {
+            showToast('No tienes permiso para editar subtickets.', 'error');
+            return;
+        }
+        const subticket = state.subtickets.find(st => st.id === subticketId);
+        if (!subticket) {
+            showToast('Subticket no encontrado', 'error');
+            return;
+        }
+
+        dispatch(p => ({ loading: { ...p.loading, [`savingSubticket_${subticketId}`]: true } }));
+        try {
+            const updatedSubticket = await apiService.updateSubticket(ticketId, subticketId, updates, currentUser.id);
+            dispatch(prevState => ({
+                subtickets: prevState.subtickets.map(st => st.id === subticketId ? updatedSubticket : st)
+            }));
+            const parentTicket = state.tickets.find(t => t.id === updatedSubticket.ticketId);
+            if (parentTicket) {
+                await logAction(parentTicket.code, `Subticket ${updatedSubticket.code} actualizado.`);
+                showToast(`Subticket ${updatedSubticket.code} actualizado`, 'success');
+            }
+
+
+            // Refrescar tickets y subtickets desde el backend
+            const [refreshedTickets, refreshedSubtickets] = await Promise.all([
+                apiService.fetchTickets(),
+                apiService.fetchAllSubtickets(),
+            ]);
+
+            dispatch(prev => ({
+                tickets: refreshedTickets,
+                subtickets: refreshedSubtickets,
+            }));
+
+            return true;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Error al actualizar subticket.";
+            showToast(message, 'error');
+        } finally {
+            dispatch(p => ({ loading: { ...p.loading, [`savingSubticket_${subticketId}`]: false } }));
+        }
+    }, [state.subtickets, state.tickets, state.currentUser, dispatch, logAction, showToast]);
 
 
     const changeTicketStatus = useCallback(
@@ -599,35 +642,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [state.tickets, state.currentUser, dispatch, logAction, showToast]);
 
-    const updateSubticket = useCallback(async (subticketId: string, updates: Partial<Subticket>) => {
-        if (!can("ticket.edit")) {
-            showToast('No tienes permiso para editar subtickets.', 'error');
-            return;
-        }
-        const subticket = state.subtickets.find(st => st.id === subticketId);
-        if (!subticket) {
-            showToast('Subticket no encontrado', 'error');
-            return;
-        }
-
-        dispatch(p => ({ loading: { ...p.loading, [`savingSubticket_${subticketId}`]: true } }));
-        try {
-            const updatedSubticket = await apiService.updateSubticket(subticketId, updates);
-            dispatch(prevState => ({
-                subtickets: prevState.subtickets.map(st => st.id === subticketId ? updatedSubticket : st)
-            }));
-            const parentTicket = state.tickets.find(t => t.id === updatedSubticket.ticketId);
-            if (parentTicket) {
-                await logAction(parentTicket.code, `Subticket ${updatedSubticket.code} actualizado.`);
-                showToast(`Subticket ${updatedSubticket.code} actualizado`, 'success');
-            }
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Error al actualizar subticket.";
-            showToast(message, 'error');
-        } finally {
-            dispatch(p => ({ loading: { ...p.loading, [`savingSubticket_${subticketId}`]: false } }));
-        }
-    }, [state.subtickets, state.tickets, state.currentUser, dispatch, logAction, showToast]);
 
     // Esta función transforma la respuesta del backend a tu tipo Subticket
     function adaptClosedSubticket(prev: Subticket, response: ClosedSubticketResponse): Subticket {

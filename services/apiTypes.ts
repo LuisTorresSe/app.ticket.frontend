@@ -16,6 +16,22 @@ export interface ApiResponse {
   message?: string;
 }
 
+
+export interface UpdateSubticketRequest {
+  ticketId: number;
+  subticketId: number;
+  updateManagerId: string;
+  createEventAt: string;       // ISO 8601 datetime format
+  dateReportPext: string;      // ISO 8601 datetime format
+  card: number;
+  port: number;
+  cto: string;
+  commentary: string;
+  city: string;
+  countClient: number
+}
+
+
 export type RequestCreateTicket = {
   managerId: String,
   type: TicketType,

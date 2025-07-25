@@ -1,4 +1,4 @@
-import { RequestCloseSubticket, RequestCloseTicket } from "./services/apiTypes";
+import { RequestCloseSubticket, RequestCloseTicket, RequestUpdateTicket } from "./services/apiTypes";
 
 export enum UserRole {
   User = 'Usuario',
@@ -342,7 +342,8 @@ export interface AppContextType extends AppState {
   reopenTicket: (ticketId: string) => void;
   restoreTicket: (ticketId: string) => void;
   addSubticket: (subticketData: Omit<Subticket, 'id' | 'code' | 'creator' | 'status'>, current: User | null) => void;
-  updateSubticket: (subticketId: string, updates: Partial<Subticket>) => void;
+
+  updateSubticket: (ticketId: number, subticketId: number, updates: Partial<Subticket>, currentUser: User | null) => void;
   closeSubticket: (request: RequestCloseSubticket, currentUser: User | null) => Promise<boolean>;
   reopenSubticket: (subticketId: string) => void;
   logAction: (ticketCode: string, action: string) => void;
@@ -351,6 +352,8 @@ export interface AppContextType extends AppState {
   deleteUser: (userId: string) => Promise<void>;
   changeTicketStatus: (request: RequestChangeTicketStatus) => Promise<boolean>
 }
+
+
 
 
 export interface RequestChangeTicketStatus {
@@ -397,4 +400,18 @@ export interface RequestCreateSubticket {
 export interface RequestCreateServerDown {
   subticketId: number;
   clienteId: number;
+}
+
+
+export interface UpdateSubticketRequest {
+  ticketId: number;
+  subticketId: number;
+  updateManagerId: string;
+  createEventAt: string;       // ISO 8601 datetime format
+  dateReportPext: string;      // ISO 8601 datetime format
+  card: number;
+  port: number;
+  cto: string;
+  commentary: string;
+  city: string;
 }

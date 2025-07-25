@@ -195,7 +195,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
 
             const request: RequestChangeTicketStatus = {
                 ticketId: ticket.id,
-                managerId: "af461b84-1d99-4342-9aab-bccc91bafcf1",
+                managerId: currentUser.id,
                 status: newStatus
                 // Asumiendo que usas currentUser del context
             };

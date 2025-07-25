@@ -49,9 +49,6 @@ export default function TicketStatsChart({ tickets }: Props) {
                         <h3 className="text-sm font-semibold mb-2">Últimas {name}</h3>
                         <p className="text-sm">✔️ % de Cierre: <strong>{closeRate}%</strong></p>
                         <p className="text-sm">⏱️ Resolución/Hora: <strong>{closePerHour}</strong></p>
-                        <p className={`text-sm ${overloaded ? 'text-red-600' : 'text-green-600'}`}>
-                            {overloaded ? '⚠️ Sobrecarga operativa' : '✅ Cierre eficiente'}
-                        </p>
                     </div>
                 ))}
             </div>

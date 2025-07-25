@@ -1,5 +1,5 @@
 import { Ticket, BackendTicket, BackendSubticket, TicketType, TicketStatus, Subticket, UploadedRecord, ActionLog, User, SubticketStatus, EmailStatus, UserRole, RequestCreateTicket, RequestCreateSubticket, RequestCloseTicket, ClosedSubticketResponse, RequestChangeTicketStatus, TicketStatusChangeResponse } from '../types';
-import { CreateTicketPayload, UpdateTicketPayload, CreateSubticketPayload, UpdateSubticketPayload, CloseSubticketPayload, ApiResponse, CreateActionLogPayload, RequestCloseSubticket, ResponseCloseSubticket, ResponseCloseTicket, CloseTicketResult } from './apiTypes';
+import { CreateTicketPayload, UpdateTicketPayload, CreateSubticketPayload, UpdateSubticketPayload, CloseSubticketPayload, ApiResponse, CreateActionLogPayload, RequestCloseSubticket, ResponseCloseSubticket, ResponseCloseTicket, CloseTicketResult, UpdateSubticketRequest } from './apiTypes';
 import { initialTickets, initialSubtickets, initialUploadedData, USERS, USER_PERMISSIONS } from '../constants';
 import { generateTicketCode } from '../lib/utils';
 
@@ -136,7 +136,6 @@ export const deleteUser = async (userId: string): Promise<ApiResponse> => {
 export const fetchTickets = async (): Promise<Ticket[]> => {
     try {
         const data = await apiFetch<any>('/ticket');
-        console.log('Respuesta de la API /ticket:', data);
 
         const backendTickets: BackendTicket[] = normalizeTicketsResponse(data);
         return backendTickets.map(transformTicketFromBackend);
@@ -199,8 +198,6 @@ export const createTicket = async (request: RequestCreateTicket, currentUser: Us
 };
 
 export const updateTicket = async (ticketId: string, payload: UpdateTicketPayload, currentId: string): Promise<Ticket> => {
-
-    console
 
     const response = await apiFetch<BackendTicket>(`/ticket/updated/${ticketId}`, {
         method: 'PUT', // o 'PATCH' si tu backend lo prefiere para updates parciales
@@ -291,13 +288,31 @@ export const createSubticket = async (payload: CreateSubticketPayload, currentUs
     }
 };
 
-export const updateSubticket = async (subticketId: string, payload: UpdateSubticketPayload): Promise<Subticket> => {
-    // return apiFetch<Subticket>(`/subtickets/${subticketId}`, { method: 'PUT', body: JSON.stringify(payload) });
-    //('[MOCK] updateSubticket', subticketId, payload);
-    const subticketIndex = mockDb.subtickets.findIndex((st: Subticket) => st.id === subticketId);
-    if (subticketIndex === -1) throw new Error("Subticket not found");
-    mockDb.subtickets[subticketIndex] = { ...mockDb.subtickets[subticketIndex], ...payload };
-    return Promise.resolve(mockDb.subtickets[subticketIndex]);
+export const updateSubticket = async (ticketId: number, subticketId: number, payload: UpdateSubticketPayload, currentId: string): Promise<Subticket> => {
+
+
+    const request: UpdateSubticketRequest = {
+        ticketId: ticketId,
+        subticketId: subticketId,
+        updateManagerId: currentId,
+        createEventAt: payload.eventStartDate,
+        dateReportPext: payload.eventStartDate,
+        card: payload.card,
+        port: payload.port,
+        cto: payload.cto,
+        commentary: payload.comment,
+        city: payload.city,
+        countClient: payload.clientCount
+
+    }
+
+
+
+
+    return apiFetch<Subticket>(`/subticket/update`, { method: 'PUT', body: JSON.stringify(request) });
+
+
+
 };
 
 

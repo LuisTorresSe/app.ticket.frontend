@@ -32,7 +32,7 @@ export default function TicketList(): JSX.Element {
         age: 'all',
     });
 
-    console.log(filters)
+
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -59,7 +59,7 @@ export default function TicketList(): JSX.Element {
         const now = new Date().getTime();
         const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
 
-        console.log(tickets)
+
 
 
         return tickets.filter((ticket: Ticket) => {

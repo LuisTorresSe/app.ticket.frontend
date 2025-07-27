@@ -2,18 +2,23 @@ import { TicketType } from '../types';
 
 export const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-  
+
     return new Date(dateString).toLocaleString('es-PE', {
-      timeZone: 'America/Lima',
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
+        timeZone: 'America/Lima',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
     });
-  };
-  
+};
+
+
+export const formatToLocalInput = (date: Date): string => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
 
 export const getTypeSuffix = (type: TicketType) => {
     switch (type) {
@@ -39,17 +44,17 @@ export const calculateDuration = (start?: string, end?: string): string => {
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     let durationString = '';
     if (days > 0) durationString += `${days}d `;
     if (hours > 0) durationString += `${hours}h `;
     durationString += `${minutes}m`;
-    
+
     return durationString.trim() || '0m';
 };
 
 
-export const calculateTotalDuration = (history: Array<{startTime: string, endTime?: string}>): string => {
+export const calculateTotalDuration = (history: Array<{ startTime: string, endTime?: string }>): string => {
     const totalMilliseconds = history.reduce((acc, item) => {
         if (item.startTime && item.endTime) {
             const diff = new Date(item.endTime).getTime() - new Date(item.startTime).getTime();

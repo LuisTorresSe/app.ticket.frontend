@@ -337,6 +337,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const updatedTicket = await apiService.updateTicket(ticketId, updates, currentUser.id);
 
+            console.log(updatedTicket)
+
             dispatch(prev => ({
                 tickets: prev.tickets.map(t =>
                     t.id === updatedTicket.id ? updatedTicket : t

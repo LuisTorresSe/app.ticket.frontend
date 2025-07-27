@@ -19,8 +19,8 @@ const TicketForm: React.FC<TicketFormProps> = ({ ticketToEdit, onFinished }) => 
     report: ticketToEdit?.report || '',
     diagnosis: ticketToEdit?.diagnosis || '',
     createAtEvent: ticketToEdit?.createAtEvent
-      ? new Date(ticketToEdit.createAtEvent).toISOString().slice(0, 16)
-      : new Date().toISOString().slice(0, 16),
+      ? new Date(ticketToEdit.createAtEvent)
+      : new Date(),
     unavailability: ticketToEdit?.unavailability || false,
     assignTo: ticketToEdit?.assignTo || '',
     nodeAffected: ticketToEdit?.nodeAffected || '',

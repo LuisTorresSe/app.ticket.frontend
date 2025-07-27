@@ -12,6 +12,7 @@ import DashboardConfigModal from './DashboardConfigModal';
 import { useAuthStore } from '@/store/authStore';
 import { can } from '@/utils/permissions';
 import TicketStatsChart from './TicketStatsChar';
+import TicketClosureChart from './TicketClosureChart';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -464,6 +465,7 @@ const Dashboard: React.FC = () => {
                 )}
             </div>
             <TicketStatsChart tickets={tickets} />
+            <TicketClosureChart tickets={tickets} />
 
             {renderWidgets()}
 

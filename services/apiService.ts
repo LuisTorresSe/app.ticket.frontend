@@ -136,8 +136,8 @@ export const deleteUser = async (userId: string): Promise<ApiResponse> => {
 export const fetchTickets = async (): Promise<Ticket[]> => {
     try {
         const data = await apiFetch<any>('/ticket');
-
         const backendTickets: BackendTicket[] = normalizeTicketsResponse(data);
+
         return backendTickets.map(transformTicketFromBackend);
     } catch (error) {
         console.error('Error al obtener tickets:', error);
@@ -204,7 +204,8 @@ export const updateTicket = async (ticketId: string, payload: UpdateTicketPayloa
         body: JSON.stringify({ ...payload, managerId: currentId }),
     });
 
-    return transformTicketFromBackend(response);
+    console.log(response)
+    return transformTicketFromBackend(response.data);
 };
 
 export const archiveTicket = async (ticketId: string): Promise<ApiResponse> => {
@@ -493,12 +494,14 @@ function transformTicketFromBackend(bt: BackendTicket): Ticket {
         node: bt.nodeAffected ?? bt.nodeAffected ?? '',
         olt: bt.oltAffected ?? '',
         advisor: bt.managerAtAperture?.managerName || bt.managerAtAperture?.name || 'Desconocido',
-        emailStatus: EmailStatus.NotDeclared,
+        emailStatus: bt.emailStatus,
         status: mapBackendStatus(bt.statusTicket ?? (bt.status as any)),
         closingDate: bt.closedAt ?? undefined,
         subticketIds: Array.isArray(bt.subtickets) ? bt.subtickets.map((st: any) => st.id?.toString?.() ?? '') : [],
         pauseHistory: [],
         executionHistory: [],
+        codeTicket: bt.codeTicket
+
     };
     //console.log('Ticket transformado:', ticket);
     return ticket;

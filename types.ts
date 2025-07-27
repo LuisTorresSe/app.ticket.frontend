@@ -59,8 +59,8 @@ export enum TicketStatus {
 }
 
 export enum EmailStatus {
-  NotDeclared = 'No Declarado',
-  Declared = 'Declarado',
+  DECLARADO = 'DECLARADO',
+  NO_DECLARADO = 'NO_DECLARADO',
 }
 
 export enum SubticketStatus {
@@ -102,6 +102,7 @@ export interface BackendTicket {
   status: any;
   ticketId: number;
   codeTicket: string;
+  emailStatus: EmailStatus
   managerAtAperture: BackendManager;
   managerAtClose: BackendManager | null;
   statusTicket: string;
@@ -121,6 +122,7 @@ export interface BackendTicket {
 export interface Ticket {
   id: number;
   code: string;
+  codeTicket: string;
   type: TicketType;
   reportedBy: string;
   initialDiagnosis: string;
@@ -136,6 +138,7 @@ export interface Ticket {
   subticketIds: string[];
   pauseHistory: PauseInfo[];
   executionHistory: ExecutionInfo[];
+
 }
 
 // ---------------------- Modelos provenientes del backend para subtickets y server downs ----------------------

@@ -23,8 +23,8 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
         port: '',
         city: '',
         clientCount: 0,
-        eventStartDate: new Date().toLocaleString(),
-        reportedToPextDate: new Date().toLocaleString(),
+        eventStartDate: new Date().toISOString().slice(0, 16),
+        reportedToPextDate: new Date().toISOString().slice(0, 16),
         node: ticket.node,
         olt: ticket.olt
     });

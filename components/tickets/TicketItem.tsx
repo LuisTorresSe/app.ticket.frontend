@@ -37,11 +37,12 @@ const StatusIndicator: React.FC<{ status: TicketStatus }> = ({ status }) => {
 };
 
 const EmailStatusIndicator: React.FC<{ status: EmailStatus }> = ({ status }) => {
-    const isDeclared = status === EmailStatus.Declared;
+    const isDeclared = status === EmailStatus.DECLARADO;
     const isDarkTheme = document.documentElement.classList.contains('dark');
     const color = isDeclared
         ? (isDarkTheme ? 'bg-green-500' : 'bg-green-600')
         : (isDarkTheme ? 'bg-red-500' : 'bg-red-600');
+
 
     return (
         <div className="flex items-center space-x-2">
@@ -75,7 +76,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
 
     const pendingSubtickets = ticketSubtickets.filter(st => st.status === SubticketStatus.Pending);
 
-    console.log
+
 
     const totalClients = useMemo(() =>
         ticketSubtickets.reduce((sum, st) => sum + st.clientCount, 0),
@@ -128,8 +129,9 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
     const handleToggleReport = (e: React.MouseEvent) => {
         e.stopPropagation();
         setReportVisible(!isReportVisible);
-        if (!isReportVisible && ticket.emailStatus !== EmailStatus.Declared) {
-            updateTicket(ticket.id, { emailStatus: EmailStatus.Declared });
+        if (!isReportVisible && ticket.emailStatus !== EmailStatus.DECLARADO) {
+
+            updateTicket(ticket.id, { emailStatus: EmailStatus.DECLARADO }, currentUser);
             showToast(`Estado de correo para ${ticket.code} actualizado a Declarado.`, 'success');
         }
     };
@@ -222,7 +224,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
         if (requiresModal && newStatus !== ticket.status) {
             openStatusChangeModal(newStatus);
         } else if (newStatus !== ticket.status) {
-            updateTicket(ticket.id, { status: newStatus });
+            updateTicket(ticket.id, { status: newStatus }, currentUser);
             logAction(ticket.code, `Estado cambiado a ${newStatus}`);
             showToast(`Ticket ${ticket.code} actualizado a ${newStatus}`, 'success');
         }
@@ -257,6 +259,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                 lastExec.endTime = changeTimestamp;
             }
         }
+
 
         // Construir request según el nuevo estado
         switch (statusChangeTarget) {

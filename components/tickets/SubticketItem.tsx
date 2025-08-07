@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Subticket, SubticketStatus, UserRole, TicketStatus, ServerDown } from '../../types';
-import { formatDate } from '../../lib/utils';
+import { formatDate, formatDuration } from '../../lib/utils';
 import { ICONS } from '../../constants';
 import { useAppContext } from '../../context/AppContext';
 import Button from '../common/Button';
@@ -25,7 +25,7 @@ const SubticketStatusBadge: React.FC<{ status: SubticketStatus }> = ({ status })
 
 // This is the key change. A very compact cell.
 const DetailCell: React.FC<{ label: string; value?: React.ReactNode; className?: string, title?: string }> = ({ label, value, className = '', title }) => (
-    <div className={`bg-primary p-1.5 w-[200px] rounded-md border border-border-color  text-xs whitespace-nowrap overflow-hidden text-ellipsis ${className}`} title={title || (typeof value === 'string' ? value : undefined)}>
+    <div className={`bg-primary p-1.5 w-[200px] rounded-md border border-border-color  text-xs whitespace-nowrap overflow-hidden w-auto text-ellipsis ${className}`} title={title || (typeof value === 'string' ? value : undefined)}>
         <span className="text-text-secondary mr-1.5">{label}:</span>
         <span className="font-semibold text-text-primary">{value || 'N/A'}</span>
     </div>
@@ -139,15 +139,17 @@ const SubticketItem: React.FC<SubticketItemProps> = ({ subticket, ticketStatus }
                     <div>
                         <h4 className="font-semibold text-xs mb-1.5 text-text-secondary uppercase tracking-wider">Creación</h4>
                         <div className="flex flex-wrap gap-x-10 gap-y-5">
-
-
                             <DetailCell label="CTO" value={subticket.cto} title={`CTO: ${subticket.cto}`} />
                             <DetailCell label="Tarjeta" value={`${subticket.card}`} title={`Tarjeta: ${subticket.card}`} />
                             <DetailCell label="Puerto" value={`${subticket.port}`} title={`Puerto: ${subticket.port}`} />
                             <DetailCell label="Ciudad" value={subticket.city} />
                             <DetailCell label="Clientes" value={subticket.clientCount} />
                             <DetailCell label="Inicio" value={formatDate(subticket.eventStartDate)} />
+                            <DetailCell label="Cierre" value={formatDate(subticket.eventEndDate)} />
                             <DetailCell label="Reporte PEXT" value={formatDate(subticket.reportedToPextDate)} />
+                            <DetailCell label="Duracion del evento" value={formatDuration(subticket.eventStartDate, subticket.eventEndDate)} />
+                            <DetailCell label="Tiempo de solucion del evento (PEXT)" value={formatDuration(subticket.reportedToPextDate, subticket.eventEndDate)} />
+                            <DetailCell label="Tiempo de reporte a PEXT" value={formatDuration(subticket.eventStartDate, subticket.reportedToPextDate)} />
                         </div>
                     </div>
 

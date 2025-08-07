@@ -76,3 +76,25 @@ export const calculateTotalDuration = (history: Array<{ startTime: string, endTi
 
     return durationString.trim() || '0m';
 }
+
+export function formatDuration(start: string | Date, end: string | Date) {
+    const startTime = new Date(start).getTime();
+    const endTime = new Date(end).getTime();
+    const diffMs = endTime - startTime;
+
+    if (diffMs <= 0) return "0 segundos";
+
+    const diffSecs = Math.floor(diffMs / 1000);
+    const hours = Math.floor(diffSecs / 3600);
+    const minutes = Math.floor((diffSecs % 3600) / 60);
+    const seconds = diffSecs % 60;
+
+    return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+export const getCurrentDateTimeLocal = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset(); // minutos de desfase
+    const local = new Date(now.getTime() - offset * 60000);
+    return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+};

@@ -2,7 +2,7 @@
 import React, { useState, Fragment, useRef, useEffect, useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Ticket, TicketStatus, EmailStatus, UserRole, Subticket, SubticketStatus, PauseInfo, ExecutionInfo, RequestChangeTicketStatus } from '../../types';
-import { formatDate, calculateDuration, calculateTotalDuration } from '../../lib/utils';
+import { formatDate, calculateDuration, calculateTotalDuration, formatDuration } from '../../lib/utils';
 import { ICONS, PAUSE_REASON_OPTIONS } from '../../constants';
 import Card from '../common/Card';
 import Button from '../common/Button';
@@ -107,6 +107,8 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
     }, [ticket.creationDate, ticket.status, ticket.closingDate]);
 
     const handleToggleExpand = () => setExpanded(!isExpanded);
+
+    console.log(ticket)
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -449,6 +451,7 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket }) => {
                         <div><strong>Fecha de Creación:</strong> {formatDate(ticket.creationDate)}</div>
                         <div><strong>Fecha de Solución:</strong> {formatDate(ticket.closingDate)}</div>
                         <div><strong>Subtickets:</strong> {ticketSubtickets.length}</div>
+                        
                     </div>
 
                     <div className="mb-4">

@@ -5,6 +5,7 @@ import { CITY_OPTIONS } from '../../constants';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import Select from '../common/Select';
+import { getCurrentDateTimeLocal } from '@/lib/utils';
 
 interface SubticketFormProps {
     ticket: Ticket;
@@ -23,8 +24,8 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
         port: '',
         city: '',
         clientCount: 0,
-        eventStartDate: new Date().toISOString().slice(0, 16),
-        reportedToPextDate: new Date().toISOString().slice(0, 16),
+        eventStartDate: getCurrentDateTimeLocal(),
+        reportedToPextDate: getCurrentDateTimeLocal(),
         node: ticket.node,
         olt: ticket.olt
     });
@@ -168,7 +169,8 @@ const SubticketForm: React.FC<SubticketFormProps> = ({ ticket, subticketToEdit, 
                             label="Fecha de Reporte a PEXT"
                             type="datetime-local"
                             name="reportedToPextDate"
-                            value={formData.eventStartDate}
+                            value={formData.reportedToPextDate}
+                            disabled
                             onChange={(e) => setFormData({ ...formData, reportedToPextDate: e.target.value })}
                             error={errors.reportedToPextDate}
                         />

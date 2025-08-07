@@ -127,6 +127,7 @@ export interface Ticket {
   reportedBy: string;
   initialDiagnosis: string;
   creationDate: string;
+  createReportePext: string;
   serviceUnavailable: boolean;
   assignTo: string;
   node: string;
